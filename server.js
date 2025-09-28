@@ -471,3 +471,51 @@ app.listen(PORT, async () => {
 });
 
 module.exports = app;
+// ============= LINK SAVER API ROUTES =============
+// Routes for Chrome Extension
+
+// Get all links
+app.get('/api/links', async (req, res) => {
+  try {
+    const links = await db.getLinks();
+    res.json(links || []);
+  } catch (error) {
+    console.error('Error getting links:', error);
+    res.json([]);
+  }
+});
+
+// Get quick links
+app.get('/api/quicklinks', async (req, res) => {
+  try {
+    const links = await db.getQuickLinks();
+    res.json(links || []);
+  } catch (error) {
+    console.error('Error getting quick links:', error);
+    res.json([]);
+  }
+});
+
+// Create a new link
+app.post('/api/links', async (req, res) => {
+  try {
+    const { url, title, category } = req.body;
+    const link = await db.createLink({ url, title, category });
+    res.json({ success: true, link });
+  } catch (error) {
+    console.error('Error creating link:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Delete a link
+app.delete('/api/links/:id', async (req, res) => {
+  try {
+    await db.deleteLink(req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting link:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
