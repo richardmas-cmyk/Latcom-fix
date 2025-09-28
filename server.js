@@ -519,3 +519,43 @@ app.delete('/api/links/:id', async (req, res) => {
   }
 });
 
+
+// ============= BILLING ENDPOINTS =============
+
+// Get billing summary for a customer
+app.get('/api/billing/summary/:customerId', authenticateApiKey, async (req, res) => {
+    try {
+        const { customerId } = req.params;
+        const { month, year } = req.query;
+        
+        // Get transactions for the period
+        const customerTxns = Object.values(transactions)
+            .filter(t => t.customerId === customerId);
+        
+        const successfulTxns = customerTxns.filter(t => t.status === 'Success');
+        const failedTxns = customerTxns.filter(t => t.status === 'Fail');
+        
+        // Calculate totals
+        const totalRevenue = successfulTxns.reduce((sum, t) => sum + (t.data.amount || 0), 0);
+        const totalCost = successfulTxns.reduce((sum, t) => sum + (t.data.originalAmount || 0), 0);
+        const totalProfit = totalRevenue - totalCost;
+        
+        res.json({
+            success: true,
+            customerId: customerId,
+            period: { month, year },
+            summary: {
+                totalTransactions: customerTxns.length,
+                successfulTransactions: successfulTxns.length,
+                failedTransactions: failedTxns.length,
+                totalRevenue: totalRevenue.toFixed(2),
+                totalCost: totalCost.toFixed(2),
+                totalProfit: totalProfit.toFixed(2),
+                profitMargin: ((totalProfit / totalRevenue) * 100).toFixed(2) + '%'
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
