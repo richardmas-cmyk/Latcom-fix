@@ -449,6 +449,38 @@ app.post('/api/test-transaction', async (req, res) => {
 });
 
 
+// Get Available Products from LATCOM
+app.get('/api/latcom-products', async (req, res) => {
+    try {
+        const axios = require('axios');
+        
+        const loginResponse = await axios.post('https://lattest.mitopup.com/api/dislogin', {
+            username: process.env.LATCOM_USERNAME,
+            password: process.env.LATCOM_PASSWORD,
+            dist_api: process.env.LATCOM_DIST_API,
+            user_uid: process.env.LATCOM_USER_UID
+        });
+        
+        const productsResponse = await axios.get('https://lattest.mitopup.com/api/gp', {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${loginResponse.data.access}`
+            }
+        });
+        
+        res.json({
+            success: true,
+            products: productsResponse.data
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.response ? error.response.data : error.message
+        });
+    }
+});
+
+
 // LATCOM Test Endpoint
 app.post('/api/test-latcom', async (req, res) => {
     try {
