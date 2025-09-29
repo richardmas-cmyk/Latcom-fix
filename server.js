@@ -511,19 +511,36 @@ app.post('/api/test-latcom', async (req, res) => {
 
 
 // Transaction Processing Endpoint
+// Transaction Processing Endpoint with Customer Discount Lookup
 app.post('/api/transaction', async (req, res) => {
     try {
-        const { amount, phone, customerId } = req.body;
+        const { amount, phone, customerId, apiKey } = req.body;
         
         if (!amount || !phone) {
             return res.status(400).json({ success: false, error: 'Missing amount or phone' });
+        }
+        
+        let customerDiscountRate = 0.10;
+        let customerRecord = null;
+        
+        if (apiKey) {
+            const result = await db.query(
+                'SELECT id, name, discount_rate FROM customers WHERE api_key = $1 AND active = true',
+                [apiKey]
+            );
+            if (result.rows.length > 0) {
+                customerRecord = result.rows[0];
+                customerDiscountRate = parseFloat(customerRecord.discount_rate);
+            } else {
+                return res.status(401).json({ success: false, error: 'Invalid API key' });
+            }
         }
         
         const { calculatePricing } = require('./pricing');
         const { selectProduct } = require('./products');
         const axios = require('axios');
         
-        const pricing = calculatePricing(amount);
+        const pricing = calculatePricing(amount, customerDiscountRate);
         const product = selectProduct(pricing.amountToProvider, pricing.productType);
         const transactionId = `LT${Date.now()}${Math.floor(Math.random() * 1000)}`;
         
@@ -535,13 +552,12 @@ app.post('/api/transaction', async (req, res) => {
         });
         
         const latcomResponse = await axios.post('https://lattest.mitopup.com/api/tn/fast', {
-            targetMSISDN: phone,
+            targetMSISDN: phone.replace(/^\+52/, ""),
             dist_transid: transactionId,
             operator: 'TELEFONICA',
             country: 'MEXICO',
             currency: 'USD',
             amount: product.amount,
-            productId: product.productId,
             skuID: product.skuId,
             service: product.service
         }, {
@@ -553,18 +569,19 @@ app.post('/api/transaction', async (req, res) => {
         
         await db.query(`
             INSERT INTO transactions (
-                transaction_id, status, product_type,
+                transaction_id, customer_id, status, product_type,
                 customer_amount, customer_discount, forex_spread,
                 amount_to_provider, provider_discount, wholesale_cost,
                 margin_retained, profit, created_at
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
         `, [
             transactionId,
+            customerRecord ? customerRecord.id : null,
             latcomResponse.data.status || 'SUCCESS',
             pricing.productType,
             pricing.customerRequestAmount,
             pricing.customerDiscount,
-            pricing.forexSpread,
+            0,
             pricing.amountToProvider,
             pricing.providerDiscount,
             pricing.wholesaleCost,
@@ -576,15 +593,78 @@ app.post('/api/transaction', async (req, res) => {
             success: true,
             transactionId: transactionId,
             latcomResponse: latcomResponse.data,
-            pricing: pricing
+            pricing: {
+                ...pricing,
+                customerDiscountApplied: `${(customerDiscountRate * 100).toFixed(1)}%`
+            }
         });
-        
     } catch (error) {
         console.error('Transaction error:', error);
-        res.status(500).json({
-            success: false,
-            error: error.response ? error.response.data : error.message
+        res.status(500).json({ success: false, error: error.response ? error.response.data : error.message });
+    }
+});
+
+
+
+
+// Customer Management Endpoints
+
+// Create new customer
+app.post('/api/admin/customers', async (req, res) => {
+    try {
+        const { name, discountRate, dailyLimit } = req.body;
+        
+            return res.status(400).json({ success: false, error: 'Missing name or discountRate' });
+        }
+        
+        // Generate API key
+        const crypto = require('crypto');
+        const apiKey = crypto.randomBytes(32).toString('hex');
+        
+        await db.query(`
+            INSERT INTO customers (name, discount_rate, api_key, daily_limit, balance)
+            VALUES ($1, $2, $3, $4, 0)
+        `, [name, discountRate, apiKey, dailyLimit || 10000]);
+        
+        res.json({
+            success: true,
+            customer: { name, discountRate, apiKey }
         });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get customer info (for customer to see their discount)
+app.get('/api/customer/info', async (req, res) => {
+    try {
+        const apiKey = req.headers['x-api-key'];
+        
+            return res.status(401).json({ success: false, error: 'API key required' });
+        }
+        
+        const result = await db.query(
+            'SELECT name, discount_rate, daily_limit, balance FROM customers WHERE api_key = $1 AND active = true',
+            [apiKey]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Customer not found' });
+        }
+        
+        const customer = result.rows[0];
+        res.json({
+            success: true,
+            customer: {
+                name: customer.name,
+                discountRate: parseFloat(customer.discount_rate),
+                discountPercentage: (parseFloat(customer.discount_rate) * 100).toFixed(1) + '%',
+                dailyLimit: parseFloat(customer.daily_limit),
+                balance: parseFloat(customer.balance)
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
