@@ -478,6 +478,85 @@ app.post('/api/test-latcom', async (req, res) => {
 });
 
 
+// Transaction Processing Endpoint
+app.post('/api/transaction', async (req, res) => {
+    try {
+        const { amount, phone, customerId } = req.body;
+        
+        if (!amount || !phone) {
+            return res.status(400).json({ success: false, error: 'Missing amount or phone' });
+        }
+        
+        const { calculatePricing } = require('./pricing');
+        const { selectProduct } = require('./products');
+        const axios = require('axios');
+        
+        const pricing = calculatePricing(amount);
+        const product = selectProduct(pricing.amountToProvider, pricing.productType);
+        const transactionId = `LT${Date.now()}${Math.floor(Math.random() * 1000)}`;
+        
+        const loginResponse = await axios.post('https://lattest.mitopup.com/api/dislogin', {
+            username: process.env.LATCOM_USERNAME,
+            password: process.env.LATCOM_PASSWORD,
+            dist_api: process.env.LATCOM_DIST_API,
+            user_uid: process.env.LATCOM_USER_UID
+        });
+        
+        const latcomResponse = await axios.post('https://lattest.mitopup.com/api/tn/fast', {
+            targetMSISDN: phone,
+            dist_transid: transactionId,
+            operator: 'TELEFONICA',
+            country: 'MEXICO',
+            currency: 'USD',
+            amount: product.amount,
+            productId: product.productId,
+            skuID: product.skuId,
+            service: product.service
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${loginResponse.data.access}`
+            }
+        });
+        
+        await db.query(`
+            INSERT INTO transactions (
+                transaction_id, status, product_type,
+                customer_amount, customer_discount, forex_spread,
+                amount_to_provider, provider_discount, wholesale_cost,
+                margin_retained, profit, created_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+        `, [
+            transactionId,
+            latcomResponse.data.status || 'SUCCESS',
+            pricing.productType,
+            pricing.customerRequestAmount,
+            pricing.customerDiscount,
+            pricing.forexSpread,
+            pricing.amountToProvider,
+            pricing.providerDiscount,
+            pricing.wholesaleCost,
+            pricing.marginRetained,
+            pricing.profit
+        ]);
+        
+        res.json({
+            success: true,
+            transactionId: transactionId,
+            latcomResponse: latcomResponse.data,
+            pricing: pricing
+        });
+        
+    } catch (error) {
+        console.error('Transaction error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.response ? error.response.data : error.message
+        });
+    }
+});
+
+
 // 404 handler - MUST BE LAST
 app.use((req, res) => {
     res.status(404).json({ success: false, error: 'Endpoint not found' });
