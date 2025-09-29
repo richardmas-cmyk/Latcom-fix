@@ -515,9 +515,9 @@ app.post('/api/test-latcom', async (req, res) => {
 app.post('/api/transaction', async (req, res) => {
     try {
         const { amount, phone, customerId, apiKey } = req.body;
-if (!amount || !phone) {        
-    return res.status(400).json({ success: false, error: 'Missing amount or phone' });
-        }
+if (!amount || !phone) {
+            return res.status(400).json({ success: false, error: 'Missing amount or phone' });
+        }        
         
         let customerDiscountRate = 0.10;
         let customerRecord = null;
