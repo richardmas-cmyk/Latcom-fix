@@ -16,6 +16,12 @@ app.use(session({ secret: 'secretkeychange', resave: false, saveUninitialized: t
 app.set('view engine', 'ejs');
 app.use(express.urlencoded({ extended: true }));
 
+app.use((req, res, next) => {
+    console.log('Request received:', req.method, req.url);
+    next();
+});
+
+
 const LATCOM_CONFIG = {
     username: process.env.LATCOM_USERNAME,
     password: process.env.LATCOM_PASSWORD,
@@ -453,10 +459,6 @@ app.use((req, res) => {
 
 // Start server
 const PORT = process.env.PORT || 3000;
-
-app.use((req, res, next) => {
-    console.log('Request received:', req.method, req.url);
-    next();
 });
 
 
