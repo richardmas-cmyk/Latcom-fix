@@ -1,0 +1,11 @@
+<html>
+<body>
+    <h1><%= title %></h1>
+    <table border="1">
+        <tr><th>ID</th><th>Status</th><th>Amount</th><th>Cost</th><th>Profit</th><th>Failure Code</th><th>Time</th></tr>
+        <% data.forEach(d => { %>
+            <tr><td><%= d.transaction_id %></td><td><%= d.status %></td><td><%= d.customer_amount %></td><td><%= d.wholesale_cost %></td><td><%= d.profit %></td><td><%= d.failure_code || 'N/A' %></td><td><%= d.created_at %></td></tr>
+        <% }); %>
+    </table>
+</body>
+</html>

@@ -1,0 +1,26 @@
+<html>
+<body>
+    <h1>Dashboard</h1>
+    <h2>Live Transactions (last 50)</h2>
+    <table border="1">
+        <tr><th>ID</th><th>Status</th><th>Amount</th><th>Time</th><th>Failure Code</th></tr>
+        <% transactions.forEach(t => { %>
+            <tr><td><%= t.transaction_id %></td><td><%= t.status %></td><td><%= t.customer_amount %></td><td><%= t.created_at %></td><td><%= t.failure_code || 'N/A' %></td></tr>
+        <% }); %>
+    </table>
+    <h2>Customers</h2>
+    <table border="1">
+        <tr><th>Name</th><th>Balance</th><th>Daily Limit</th></tr>
+        <% customers.forEach(c => { %>
+            <tr><td><%= c.name %></td><td><%= c.balance %></td><td><%= c.daily_limit %></td></tr>
+        <% }); %>
+    </table>
+    <h2>Providers</h2>
+    <table border="1">
+        <tr><th>Name</th><th>Used</th><th>Limit</th></tr>
+        <% providers.forEach(p => { %>
+            <tr><td><%= p.name %></td><td><%= p.current_used %></td><td><%= p.credit_limit %></td></tr>
+        <% }); %>
+    </table>
+</body>
+</html>
