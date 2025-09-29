@@ -515,9 +515,8 @@ app.post('/api/test-latcom', async (req, res) => {
 app.post('/api/transaction', async (req, res) => {
     try {
         const { amount, phone, customerId, apiKey } = req.body;
-        
-        if (!amount || !phone) {
-            return res.status(400).json({ success: false, error: 'Missing amount or phone' });
+if (!amount || !phone) {        
+    return res.status(400).json({ success: false, error: 'Missing amount or phone' });
         }
         
         let customerDiscountRate = 0.10;
@@ -614,6 +613,7 @@ app.post('/api/admin/customers', async (req, res) => {
     try {
         const { name, discountRate, dailyLimit } = req.body;
         
+            if (!name || !discountRate) {
             return res.status(400).json({ success: false, error: 'Missing name or discountRate' });
         }
         
@@ -640,6 +640,7 @@ app.get('/api/customer/info', async (req, res) => {
     try {
         const apiKey = req.headers['x-api-key'];
         
+         if (!apiKey) {
             return res.status(401).json({ success: false, error: 'API key required' });
         }
         
