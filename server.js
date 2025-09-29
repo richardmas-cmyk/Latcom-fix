@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const crypto = require('crypto');
@@ -368,10 +369,6 @@ app.use((error, req, res, next) => {
     res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
-app.use((req, res) => {
-    res.status(404).json({ success: false, error: 'Endpoint not found' });
-});
-
 function checkAuth(req, res, next) {
     if (req.session.loggedIn) {
         next();
@@ -427,10 +424,44 @@ cron.schedule('0 0 * * *', async () => {
     });
 });
 
+
+// Test transaction endpoint
+app.post('/api/test-transaction', async (req, res) => {
+    try {
+        const { amount } = req.body;
+        const { calculatePricing } = require('./pricing');
+        const pricing = calculatePricing(amount);
+        
+        res.json({
+            success: true,
+            pricing: pricing,
+            message: `Would send ${pricing.amountToProvider} to LATCOM as ${pricing.productType}`
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+
+// 404 handler - MUST BE LAST
+
+
+// Start server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
+
+app.use((req, res, next) => {
+    console.log('Request received:', req.method, req.url);
+    next();
+});
+
+
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
-    await db.initializeDatabase();
+    
+    // Initialize database without blocking
+    db.initializeDatabase()
+        .then(() => console.log('✅ Database initialized'))
+        .catch(err => console.error('❌ Database error:', err.message));
 });
 
 module.exports = app;
