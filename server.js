@@ -449,6 +449,35 @@ app.post('/api/test-transaction', async (req, res) => {
 });
 
 
+// LATCOM Test Endpoint
+app.post('/api/test-latcom', async (req, res) => {
+    try {
+        const axios = require('axios');
+        
+        // Test login
+        const loginResponse = await axios.post('https://lattest.mitopup.com/api/dislogin', {
+            username: process.env.LATCOM_USERNAME,
+            password: process.env.LATCOM_PASSWORD,
+            dist_api: process.env.LATCOM_DIST_API,
+            user_uid: process.env.LATCOM_USER_UID
+        }, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        res.json({
+            success: true,
+            message: 'LATCOM login successful',
+            token: loginResponse.data.access.substring(0, 20) + '...'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.response ? error.response.data : error.message
+        });
+    }
+});
+
+
 // 404 handler - MUST BE LAST
 app.use((req, res) => {
     res.status(404).json({ success: false, error: 'Endpoint not found' });
