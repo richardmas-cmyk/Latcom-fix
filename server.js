@@ -444,6 +444,11 @@ app.post('/api/test-transaction', async (req, res) => {
 
 
 // 404 handler - MUST BE LAST
+app.use((req, res) => {
+    res.status(404).json({ success: false, error: 'Endpoint not found' });
+});
+
+
 
 
 // Start server
