@@ -3,7 +3,16 @@ const bcrypt = require('bcrypt');
 
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: false
+    ssl: false,
+    // Add connection pool settings
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000,
+});
+
+// Test connection on startup
+pool.on('error', (err) => {
+    console.error('Unexpected database error:', err);
 });
 
 class DatabaseManager {
@@ -54,7 +63,16 @@ class DatabaseManager {
     }
 
     async query(text, params) {
-        return this.pool.query(text, params);
+        const start = Date.now();
+        try {
+            const res = await this.pool.query(text, params);
+            const duration = Date.now() - start;
+            console.log('Executed query', { text: text.substring(0, 50), duration, rows: res.rowCount });
+            return res;
+        } catch (error) {
+            console.error('Database query error:', error.message);
+            throw error;
+        }
     }
 }
 
