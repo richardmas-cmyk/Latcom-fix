@@ -1,8 +1,9 @@
 const { Pool } = require('pg');
 
-// Database configuration for Railway (WORKING VERSION)
+// Database configuration for Railway
 function createPool() {
-    const DATABASE_URL = process.env.DATABASE_URL;
+    // Use PUBLIC URL (with proxy) instead of internal URL (IPv6 only)
+    const DATABASE_URL = process.env.DATABASE_PUBLIC_URL || process.env.DATABASE_URL;
 
     if (!DATABASE_URL) {
         console.log('⚠️ No DATABASE_URL found, running without database');
@@ -19,7 +20,7 @@ function createPool() {
         console.log('🔌 Connecting with connection string...');
     }
 
-    // Use the EXACT working config from commit 68df923
+    // Railway proxy requires SSL with rejectUnauthorized: false
     return new Pool({
         connectionString: DATABASE_URL,
         ssl: {
