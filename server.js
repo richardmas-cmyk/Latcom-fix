@@ -2,10 +2,8 @@ if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config();
 }
 const express = require('express');
-const axios = require('axios');
 const crypto = require('crypto');
-const DatabaseManager = require('./database');
-const db = new DatabaseManager();
+const db = require('./database');
 const nodemailer = require('nodemailer');
 const cron = require('node-cron');
 const bcrypt = require('bcrypt');
