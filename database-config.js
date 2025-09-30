@@ -20,19 +20,15 @@ function createPool() {
         console.log('🔌 Connecting with connection string...');
     }
 
-    // Railway proxy.rlwy.net requires proper SSL configuration
-    // Append sslmode if not present
-    const urlWithSSL = DATABASE_URL.includes('?')
-        ? `${DATABASE_URL}&sslmode=require`
-        : `${DATABASE_URL}?sslmode=require`;
+    // Try with sslmode=disable for Railway proxy
+    const urlNoSSL = DATABASE_URL.includes('?')
+        ? `${DATABASE_URL}&sslmode=disable`
+        : `${DATABASE_URL}?sslmode=disable`;
+
+    console.log('🔧 Attempting connection with SSL disabled...');
 
     return new Pool({
-        connectionString: urlWithSSL,
-        ssl: {
-            rejectUnauthorized: false,
-            // Enable SSL but don't verify certificate
-            checkServerIdentity: () => undefined
-        }
+        connectionString: urlNoSSL
     });
 }
 
