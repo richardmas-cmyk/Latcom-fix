@@ -1,8 +1,10 @@
 const express = require('express');
 const { createPool } = require('./database-config');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
+app.use(express.static('views'));
 
 // Initialize database connection
 let pool = createPool();
@@ -303,22 +305,66 @@ app.get('/api/balance', async (req, res) => {
 app.post('/api/admin/add-credit', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
     const { customer_id, amount } = req.body;
-    
+
     if (adminKey !== process.env.ADMIN_KEY) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
-    
+
     if (!dbConnected) {
         return res.status(503).json({ success: false, error: 'Database not available' });
     }
-    
+
     try {
         await pool.query(
             'UPDATE customers SET current_balance = current_balance + $1 WHERE customer_id = $2',
             [amount, customer_id]
         );
-        
+
         res.json({ success: true, message: 'Credit added successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Dashboard route
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
+});
+
+// Get transactions for dashboard
+app.get('/api/admin/transactions', async (req, res) => {
+    const apiKey = req.headers['x-api-key'];
+    const customerId = req.headers['x-customer-id'];
+
+    if (!dbConnected) {
+        return res.json({
+            success: true,
+            transactions: [],
+            message: 'Test mode - no transactions yet'
+        });
+    }
+
+    try {
+        // Verify customer
+        const custResult = await pool.query(
+            'SELECT * FROM customers WHERE api_key = $1 AND customer_id = $2',
+            [apiKey, customerId]
+        );
+
+        if (custResult.rows.length === 0) {
+            return res.status(401).json({ success: false, error: 'Invalid credentials' });
+        }
+
+        // Get transactions
+        const result = await pool.query(
+            'SELECT * FROM transactions WHERE customer_id = $1 ORDER BY created_at DESC LIMIT 50',
+            [customerId]
+        );
+
+        res.json({
+            success: true,
+            transactions: result.rows
+        });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
