@@ -1,19 +1,16 @@
 {
-  "name": "relier-telecom-api",
+  "name": "latcom-fix",
   "version": "1.0.0",
   "main": "server.js",
+  "scripts": {
+    "start": "node init-database-railway.js || node server-with-db.js",
+    "init-db": "node init-database-railway.js",
+    "server": "node server-with-db.js"
+  },
   "dependencies": {
-    "axios": "^1.12.2",
-    "bcrypt": "^6.0.0",
-    "bcryptjs": "^3.0.2",
-    "body-parser": "^2.2.0",
-    "dotenv": "^17.2.2",
-    "ejs": "^3.1.10",
-    "express": "^4.21.2",
-    "express-session": "^1.18.2",
-    "node-cron": "^4.2.1",
-    "nodemailer": "^7.0.6",
-    "pg": "^8.16.3",
-    "stripe": "^18.5.0"
+    "express": "^4.18.2",
+    "axios": "^1.5.0",
+    "dotenv": "^16.3.1",
+    "pg": "^8.11.3"
   }
 }
