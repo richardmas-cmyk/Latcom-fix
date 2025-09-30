@@ -2,7 +2,23 @@ const { Pool } = require('pg');
 
 // Database configuration for Railway
 function createPool() {
-    // Check if we have individual PostgreSQL environment variables
+    // Try DATABASE_PUBLIC_URL first (IPv4), fallback to individual vars
+    const DATABASE_PUBLIC_URL = process.env.DATABASE_PUBLIC_URL;
+
+    if (DATABASE_PUBLIC_URL) {
+        console.log('🔌 Connecting via public URL (IPv4)...');
+        return new Pool({
+            connectionString: DATABASE_PUBLIC_URL,
+            ssl: {
+                rejectUnauthorized: false
+            },
+            max: 5,
+            idleTimeoutMillis: 30000,
+            connectionTimeoutMillis: 10000,
+        });
+    }
+
+    // Fallback to individual credentials
     const PGHOST = process.env.PGHOST;
     const PGPORT = process.env.PGPORT;
     const PGUSER = process.env.PGUSER;
@@ -17,8 +33,6 @@ function createPool() {
     console.log('🔌 Connecting to database via individual credentials...');
     console.log(`📍 Host: ${PGHOST}:${PGPORT}`);
 
-    // Use individual parameters instead of connection string
-    // Force IPv4 for Railway compatibility
     return new Pool({
         host: PGHOST,
         port: PGPORT || 5432,
@@ -29,10 +43,6 @@ function createPool() {
         max: 5,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000,
-        // Force IPv4 to avoid IPv6 connection issues
-        options: '-c client_encoding=UTF8',
-        // Use IPv4 family explicitly
-        family: 4
     });
 }
 
