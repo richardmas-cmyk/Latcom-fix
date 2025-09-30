@@ -694,3 +694,21 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 module.exports = app;
+
+// Database test endpoint
+app.get('/test-db', async (req, res) => {
+    try {
+        const result = await db.pool.query('SELECT NOW()');
+        res.json({
+            success: true,
+            time: result.rows[0].now,
+            dbUrl: process.env.DATABASE_URL ? 'Set' : 'Not set'
+        });
+    } catch (error) {
+        res.json({
+            success: false,
+            error: error.message,
+            dbUrl: process.env.DATABASE_URL ? 'Set' : 'Not set'
+        });
+    }
+});
