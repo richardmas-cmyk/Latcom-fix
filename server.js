@@ -710,3 +710,25 @@ app.get('/test-db', async (req, res) => {
         });
     }
 });
+
+// TEST ENDPOINT - Direct LATCOM without database
+app.post('/api/test-latcom', async (req, res) => {
+    try {
+        const { phone, amount } = req.body;
+        console.log('Test LATCOM call:', { phone, amount });
+        
+        // Just return test response for now
+        res.json({
+            success: true,
+            test: true,
+            message: 'LATCOM test endpoint ready',
+            received: { phone, amount }
+        });
+        
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
