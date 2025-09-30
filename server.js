@@ -1,49 +1,100 @@
 const express = require('express');
-const axios = require('axios');
+const { Pool } = require('pg');
+
 const app = express();
 app.use(express.json());
 
-const PORT = process.env.PORT || 8080;
-
-// Health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'healthy', version: 'simple' });
+// Railway internal PostgreSQL
+const pool = new Pool({
+    connectionString: 'postgresql://postgres:BSvPcmMMbGxsbGDSHfbryzUkKDnAwkzH@postgres-iuh3.railway.internal:5432/railway'
 });
 
-// CSQ Test Endpoint
-app.post('/api/csq/topup', async (req, res) => {
-    const { phone } = req.body;
+// Initialize database
+async function initDatabase() {
+    try {
+        console.log('🚀 Initializing database...');
+        
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS customers (
+                id SERIAL PRIMARY KEY,
+                customer_id VARCHAR(50) UNIQUE NOT NULL,
+                company_name VARCHAR(255) NOT NULL,
+                api_key VARCHAR(255) UNIQUE NOT NULL,
+                secret_key VARCHAR(255),
+                credit_limit DECIMAL(10,2) DEFAULT 0,
+                current_balance DECIMAL(10,2) DEFAULT 0,
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+        
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS transactions (
+                id SERIAL PRIMARY KEY,
+                transaction_id VARCHAR(50) UNIQUE NOT NULL,
+                customer_id VARCHAR(50),
+                phone VARCHAR(20),
+                amount DECIMAL(10,2),
+                status VARCHAR(20),
+                reference VARCHAR(100),
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+        
+        const exists = await pool.query('SELECT * FROM customers WHERE customer_id = $1', ['ENVIADESPENSA_001']);
+        if (exists.rows.length === 0) {
+            await pool.query(
+                'INSERT INTO customers (customer_id, company_name, api_key, secret_key, credit_limit, current_balance) VALUES ($1, $2, $3, $4, $5, $6)',
+                ['ENVIADESPENSA_001', 'EnviaDespensa', 'enviadespensa_prod_2025', 'ENV!desp3ns4#2025', 10000, 10000]
+            );
+            console.log('✅ EnviaDespensa customer created!');
+        }
+        console.log('✅ Database initialized!');
+    } catch (error) {
+        console.error('DB Init Error:', error.message);
+    }
+}
+
+// Test endpoint
+app.get('/health', (req, res) => {
+    res.json({ status: 'OK', message: 'Server with database is running!' });
+});
+
+// EnviaDespensa endpoint
+app.post('/api/enviadespensa/topup', async (req, res) => {
+    console.log('Received topup request:', req.body);
+    const apiKey = req.headers['x-api-key'];
+    const customerId = req.headers['x-customer-id'];
+    const { phone, amount, reference } = req.body;
     
     try {
-        // Login to LATCOM
-        const loginResponse = await axios.post('https://lattest.mitopup.com/api/dislogin', {
-            username: 'enviadespensa',
-            password: 'ENV!d32025#',
-            user_uid: '20060916',
-            dist_api: '38aa13413d1431fba1824f2633c2b7d67f5fffcb91b043629a0d1fe09df2fb8d'
-        });
+        const customer = await pool.query(
+            'SELECT * FROM customers WHERE api_key = $1 AND customer_id = $2',
+            [apiKey, customerId]
+        );
         
-        // Send topup
-        const topupResponse = await axios.post('https://lattest.mitopup.com/api/tn/fast', {
-            targetMSISDN: phone,
-            dist_transid: `CSQ${Date.now()}`,
-            operator: "TELEFONICA",
-            country: "MEXICO",
-            currency: "USD",
-            amount: 10,
-            productId: "TFE_MEXICO_TOPUP_103_2579_MXN",
-            skuID: "0",
-            service: 2
-        }, {
-            headers: { 'Authorization': `Bearer ${loginResponse.data.access}` }
-        });
+        if (customer.rows.length === 0) {
+            return res.status(401).json({ success: false, error: 'Invalid credentials' });
+        }
         
-        res.json({ success: true, result: topupResponse.data });
-    } catch (err) {
-        res.json({ success: false, error: err.response?.data || err.message });
+        const transactionId = 'RLR' + Date.now();
+        res.json({
+            success: true,
+            transaction: {
+                id: transactionId,
+                status: 'SUCCESS',
+                amount: amount,
+                phone: phone
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Simple server running on port ${PORT} - NO DATABASE`);
+const PORT = process.env.PORT || 8080;
+initDatabase().then(() => {
+    app.listen(PORT, () => {
+        console.log(`✅ Server running on port ${PORT} with DATABASE!`);
+    });
 });
