@@ -686,7 +686,7 @@ const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
-    
+    console.log('DATABASE_URL:', process.env.DATABASE_URL);
     // Initialize database without blocking
     db.initializeDatabase()
         .then(() => console.log('✅ Database initialized'))
