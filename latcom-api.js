@@ -82,12 +82,15 @@ class LatcomAPI {
             console.error('❌ Latcom API error:', error.message);
 
             if (error.response) {
-                console.error('❌ Response data:', error.response.data);
+                console.error('❌ Response status:', error.response.status);
+                console.error('❌ Response headers:', JSON.stringify(error.response.headers));
+                console.error('❌ Response data:', JSON.stringify(error.response.data));
                 // API returned error response
+                const errorMessage = error.response.data?.message || error.response.data?.error || error.response.data?.responseMessage || JSON.stringify(error.response.data) || 'Latcom API error';
                 return {
                     success: false,
                     operatorTransactionId: null,
-                    message: error.response.data?.message || error.response.data?.error || error.response.data?.responseMessage || 'Latcom API error'
+                    message: errorMessage
                 };
             } else if (error.request) {
                 // No response received
