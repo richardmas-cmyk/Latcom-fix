@@ -7,16 +7,68 @@ const axios = require('axios');
 
 class LatcomAPI {
     constructor() {
-        this.apiUrl = process.env.LATCOM_DIST_API;
+        this.baseUrl = process.env.LATCOM_DIST_API;
         this.username = process.env.LATCOM_USERNAME;
         this.password = process.env.LATCOM_PASSWORD;
         this.userUid = process.env.LATCOM_USER_UID;
+        this.distApi = process.env.LATCOM_API_KEY;
+        this.accessToken = null;
+        this.tokenExpiry = null;
 
-        if (!this.apiUrl || !this.username || !this.password) {
+        if (!this.baseUrl || !this.username || !this.password || !this.distApi) {
             console.log('⚠️ Latcom credentials not configured');
         } else {
-            console.log('✅ Latcom API configured:', this.apiUrl);
+            console.log('✅ Latcom API configured:', this.baseUrl);
         }
+    }
+
+    /**
+     * Login to Latcom and get access token
+     */
+    async login() {
+        try {
+            console.log('🔐 Logging into Latcom...');
+
+            const response = await axios.post(
+                `${this.baseUrl}/api/dislogin`,
+                {
+                    username: this.username,
+                    password: this.password,
+                    dist_api: this.distApi,
+                    user_uid: this.userUid
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 30000
+                }
+            );
+
+            if (response.data && response.data.access) {
+                this.accessToken = response.data.access;
+                // Token expires in 5 minutes typically, refresh before that
+                this.tokenExpiry = Date.now() + (4 * 60 * 1000);
+                console.log('✅ Latcom login successful');
+                return true;
+            } else {
+                console.error('❌ Latcom login failed - no access token');
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Latcom login error:', error.message);
+            return false;
+        }
+    }
+
+    /**
+     * Ensure we have a valid access token
+     */
+    async ensureAuthenticated() {
+        if (!this.accessToken || Date.now() >= this.tokenExpiry) {
+            return await this.login();
+        }
+        return true;
     }
 
     /**
@@ -27,14 +79,20 @@ class LatcomAPI {
      * @returns {Promise<{success: boolean, operatorTransactionId: string, message: string}>}
      */
     async topup(phone, amount, reference) {
-        if (!this.apiUrl || !this.username || !this.password) {
+        if (!this.baseUrl || !this.username || !this.password) {
             throw new Error('Latcom API not configured');
+        }
+
+        // Ensure we're authenticated
+        const authenticated = await this.ensureAuthenticated();
+        if (!authenticated) {
+            throw new Error('Failed to authenticate with Latcom');
         }
 
         try {
             console.log(`📞 Calling Latcom API for ${phone} with $${amount}...`);
 
-            // Latcom API format (from documentation)
+            // Latcom API format (from documentation page 8-9)
             const requestBody = {
                 targetMSISDN: phone,
                 dist_transid: reference || 'RLR' + Date.now(),
@@ -50,31 +108,31 @@ class LatcomAPI {
             console.log('📤 Latcom request:', requestBody);
 
             const response = await axios.post(
-                this.apiUrl,
+                `${this.baseUrl}/api/tn/fast`,
                 requestBody,
                 {
                     headers: {
                         'Content-Type': 'application/json',
-                        'dist_api': process.env.LATCOM_API_KEY || ''
+                        'Authorization': `Bearer ${this.accessToken}`
                     },
-                    timeout: 30000 // 30 second timeout
+                    timeout: 30000
                 }
             );
 
             console.log('✅ Latcom response:', JSON.stringify(response.data));
 
-            // Parse Latcom response
-            if (response.data && (response.data.success || response.data.status === 'success' || response.data.responseCode === '0')) {
+            // Parse Latcom response (page 11-12)
+            if (response.data && response.data.status === 'SUCCESS') {
                 return {
                     success: true,
-                    operatorTransactionId: response.data.transactionId || response.data.referenceId || response.data.id || 'LATCOM_' + Date.now(),
-                    message: response.data.message || 'Top-up successful'
+                    operatorTransactionId: response.data.transId || response.data.venTransid || 'LATCOM_' + Date.now(),
+                    message: response.data.responseMessage || 'Top-up successful'
                 };
             } else {
                 return {
                     success: false,
                     operatorTransactionId: null,
-                    message: response.data.message || response.data.error || response.data.responseMessage || 'Top-up failed'
+                    message: response.data.vendorResponseMsg || response.data.responseMessage || response.data.status || 'Top-up failed'
                 };
             }
 
@@ -83,20 +141,21 @@ class LatcomAPI {
 
             if (error.response) {
                 console.error('❌ Response status:', error.response.status);
-                console.error('❌ Response headers:', JSON.stringify(error.response.headers));
                 console.error('❌ Response data:', JSON.stringify(error.response.data));
-                // API returned error response
-                const errorMessage = error.response.data?.message || error.response.data?.error || error.response.data?.responseMessage || JSON.stringify(error.response.data) || 'Latcom API error';
+
+                const errorMessage = error.response.data?.vendorResponseMsg ||
+                                    error.response.data?.responseMessage ||
+                                    error.response.data?.message ||
+                                    JSON.stringify(error.response.data) ||
+                                    'Latcom API error';
                 return {
                     success: false,
                     operatorTransactionId: null,
                     message: errorMessage
                 };
             } else if (error.request) {
-                // No response received
                 throw new Error('Latcom API timeout - no response received');
             } else {
-                // Request setup error
                 throw new Error('Latcom API request failed: ' + error.message);
             }
         }
