@@ -1,16 +1,19 @@
 {
   "name": "latcom-fix",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "server-with-init.js",
   "scripts": {
-    "start": "node init-database-railway.js || node server-with-db.js",
-    "init-db": "node init-database-railway.js",
-    "server": "node server-with-db.js"
+    "start": "node server-with-init.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "axios": "^1.5.0",
+    "axios": "^1.6.0",
     "dotenv": "^16.3.1",
-    "pg": "^8.11.3"
+    "pg": "^8.11.3",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
   }
 }
