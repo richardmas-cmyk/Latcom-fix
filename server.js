@@ -1,5 +1,6 @@
 const express = require('express');
 const { createPool } = require('./database-config');
+const latcomAPI = require('./latcom-api');
 const path = require('path');
 
 const app = express();
@@ -190,11 +191,20 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
             VALUES ($1, $2, $3, $4, $5, $6, NOW())
         `, [transactionId, customerId, phone, amount, 'PENDING', reference || '']);
         
-        // TODO: Call Latcom API here
-        const latcomSuccess = true; // Simulate success
-        const operatorId = 'OP_' + Date.now();
-        
-        if (latcomSuccess) {
+        // Call real Latcom API
+        let latcomResult;
+        try {
+            latcomResult = await latcomAPI.topup(phone, amount, reference);
+        } catch (error) {
+            await client.query('ROLLBACK');
+            return res.status(500).json({
+                success: false,
+                error: 'Latcom API error: ' + error.message
+            });
+        }
+
+        if (latcomResult.success) {
+            const operatorId = latcomResult.operatorTransactionId;
             // Update customer balance
             await client.query(
                 'UPDATE customers SET current_balance = $1 WHERE customer_id = $2',
@@ -241,8 +251,12 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
                 remaining_balance: newBalance
             });
         } else {
+            // Latcom failed - rollback transaction
             await client.query('ROLLBACK');
-            throw new Error('Latcom processing failed');
+            return res.status(500).json({
+                success: false,
+                error: 'Latcom top-up failed: ' + latcomResult.message
+            });
         }
         
     } catch (error) {
