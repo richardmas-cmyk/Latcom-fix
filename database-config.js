@@ -2,43 +2,26 @@ const { Pool } = require('pg');
 
 // Database configuration for Railway
 function createPool() {
-    // Try DATABASE_PUBLIC_URL first (IPv4), fallback to individual vars
-    const DATABASE_PUBLIC_URL = process.env.DATABASE_PUBLIC_URL;
+    const DATABASE_URL = process.env.DATABASE_URL;
 
-    if (DATABASE_PUBLIC_URL) {
-        console.log('🔌 Connecting via public URL...');
-
-        // Try without SSL first for Railway
-        return new Pool({
-            connectionString: DATABASE_PUBLIC_URL,
-            ssl: false,
-            max: 5,
-            idleTimeoutMillis: 30000,
-            connectionTimeoutMillis: 10000,
-        });
-    }
-
-    // Fallback to individual credentials
-    const PGHOST = process.env.PGHOST;
-    const PGPORT = process.env.PGPORT;
-    const PGUSER = process.env.PGUSER;
-    const PGPASSWORD = process.env.PGPASSWORD;
-    const PGDATABASE = process.env.PGDATABASE;
-
-    if (!PGHOST || !PGUSER || !PGPASSWORD || !PGDATABASE) {
-        console.log('⚠️ No database credentials found, running without database');
+    if (!DATABASE_URL) {
+        console.log('⚠️ No DATABASE_URL found, running without database');
         return null;
     }
 
-    console.log('🔌 Connecting to database via individual credentials...');
-    console.log(`📍 Host: ${PGHOST}:${PGPORT}`);
+    console.log('🔌 Connecting to Railway database...');
 
+    // Parse the URL to handle it properly
+    const url = new URL(DATABASE_URL);
+
+    // Railway uses postgres://user:pass@host:port/db format
+    // Extract components and connect without SSL for internal network
     return new Pool({
-        host: PGHOST,
-        port: PGPORT || 5432,
-        user: PGUSER,
-        password: PGPASSWORD,
-        database: PGDATABASE,
+        host: url.hostname,
+        port: parseInt(url.port) || 5432,
+        user: url.username,
+        password: url.password,
+        database: url.pathname.slice(1), // Remove leading /
         ssl: false,
         max: 5,
         idleTimeoutMillis: 30000,
