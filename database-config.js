@@ -6,12 +6,12 @@ function createPool() {
     const DATABASE_PUBLIC_URL = process.env.DATABASE_PUBLIC_URL;
 
     if (DATABASE_PUBLIC_URL) {
-        console.log('🔌 Connecting via public URL (IPv4)...');
+        console.log('🔌 Connecting via public URL...');
+
+        // Try without SSL first for Railway
         return new Pool({
             connectionString: DATABASE_PUBLIC_URL,
-            ssl: {
-                rejectUnauthorized: false
-            },
+            ssl: false,
             max: 5,
             idleTimeoutMillis: 30000,
             connectionTimeoutMillis: 10000,
