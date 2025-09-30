@@ -34,38 +34,47 @@ class LatcomAPI {
         try {
             console.log(`📞 Calling Latcom API for ${phone} with $${amount}...`);
 
+            // Latcom API format (from documentation)
+            const requestBody = {
+                targetMSISDN: phone,
+                dist_transid: reference || 'RLR' + Date.now(),
+                operator: "TELEFONICA",
+                country: "MEXICO",
+                currency: "USD",
+                amount: amount,
+                productId: "TFE_MEXICO_TOPUP_103_2579_MXN",
+                skuID: "0",
+                service: 2
+            };
+
+            console.log('📤 Latcom request:', requestBody);
+
             const response = await axios.post(
                 this.apiUrl,
-                {
-                    username: this.username,
-                    password: this.password,
-                    userUid: this.userUid,
-                    phone: phone,
-                    amount: amount,
-                    reference: reference || ''
-                },
+                requestBody,
                 {
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'dist_api': process.env.LATCOM_API_KEY || ''
                     },
                     timeout: 30000 // 30 second timeout
                 }
             );
 
-            console.log('✅ Latcom response:', response.data);
+            console.log('✅ Latcom response:', JSON.stringify(response.data));
 
             // Parse Latcom response
-            if (response.data && response.data.success) {
+            if (response.data && (response.data.success || response.data.status === 'success' || response.data.responseCode === '0')) {
                 return {
                     success: true,
-                    operatorTransactionId: response.data.transactionId || response.data.id || 'LATCOM_' + Date.now(),
+                    operatorTransactionId: response.data.transactionId || response.data.referenceId || response.data.id || 'LATCOM_' + Date.now(),
                     message: response.data.message || 'Top-up successful'
                 };
             } else {
                 return {
                     success: false,
                     operatorTransactionId: null,
-                    message: response.data.message || response.data.error || 'Top-up failed'
+                    message: response.data.message || response.data.error || response.data.responseMessage || 'Top-up failed'
                 };
             }
 
@@ -73,11 +82,12 @@ class LatcomAPI {
             console.error('❌ Latcom API error:', error.message);
 
             if (error.response) {
+                console.error('❌ Response data:', error.response.data);
                 // API returned error response
                 return {
                     success: false,
                     operatorTransactionId: null,
-                    message: error.response.data?.message || error.response.data?.error || 'Latcom API error'
+                    message: error.response.data?.message || error.response.data?.error || error.response.data?.responseMessage || 'Latcom API error'
                 };
             } else if (error.request) {
                 // No response received
