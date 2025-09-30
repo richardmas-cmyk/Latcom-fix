@@ -557,7 +557,8 @@ if (!amount || !phone) {
             country: 'MEXICO',
             currency: 'USD',
             amount: product.amount,
-            skuID: product.skuId,
+            productId: "TFE_MEXICO_TOPUP_103_2579_MXN",
+            skuID: product.skuId, || "0",
             service: product.service
         }, {
             headers: {
