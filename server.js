@@ -388,6 +388,8 @@ app.get('/api/admin/transactions', async (req, res) => {
 const PORT = process.env.PORT || 8080;
 
 console.log('🚀 Starting production server...');
+console.log('📡 Latcom API configured:', latcomAPI.isConfigured() ? 'YES' : 'NO');
+
 testDatabase().then(() => {
     initDatabase().then(() => {
         app.listen(PORT, () => {
