@@ -18,6 +18,7 @@ function createPool() {
     console.log(`📍 Host: ${PGHOST}:${PGPORT}`);
 
     // Use individual parameters instead of connection string
+    // Force IPv4 for Railway compatibility
     return new Pool({
         host: PGHOST,
         port: PGPORT || 5432,
@@ -28,6 +29,10 @@ function createPool() {
         max: 5,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000,
+        // Force IPv4 to avoid IPv6 connection issues
+        options: '-c client_encoding=UTF8',
+        // Use IPv4 family explicitly
+        family: 4
     });
 }
 
