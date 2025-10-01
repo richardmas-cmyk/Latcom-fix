@@ -1138,6 +1138,89 @@ app.get('/api/admin/alert-status', async (req, res) => {
     });
 });
 
+// Delete invoice (Admin only)
+app.delete('/api/admin/invoice/:invoiceNumber', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    const { invoiceNumber } = req.params;
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not connected' });
+    }
+
+    try {
+        // Delete invoice items first (foreign key constraint)
+        await pool.query('DELETE FROM invoice_items WHERE invoice_number = $1', [invoiceNumber]);
+
+        // Delete invoice
+        const result = await pool.query('DELETE FROM invoices WHERE invoice_number = $1 RETURNING *', [invoiceNumber]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Invoice not found' });
+        }
+
+        res.json({ success: true, message: 'Invoice deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update invoice commission (Admin only)
+app.patch('/api/admin/invoice/:invoiceNumber', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    const { invoiceNumber } = req.params;
+    const { commission_percentage, notes } = req.body;
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not connected' });
+    }
+
+    try {
+        // Get current invoice
+        const invoiceResult = await pool.query('SELECT * FROM invoices WHERE invoice_number = $1', [invoiceNumber]);
+
+        if (invoiceResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Invoice not found' });
+        }
+
+        const invoice = invoiceResult.rows[0];
+        const subtotal = parseFloat(invoice.subtotal);
+
+        // Recalculate if commission changed
+        let newCommissionPercentage = commission_percentage !== undefined ? parseFloat(commission_percentage) : parseFloat(invoice.commission_percentage);
+        let newCommissionAmount = (subtotal * newCommissionPercentage) / 100;
+        let newTotal = subtotal + newCommissionAmount;
+
+        // Update invoice
+        await pool.query(
+            `UPDATE invoices
+             SET commission_percentage = $1,
+                 discount_amount = $2,
+                 total = $3,
+                 notes = $4
+             WHERE invoice_number = $5`,
+            [newCommissionPercentage, newCommissionAmount.toFixed(2), newTotal.toFixed(2), notes || invoice.notes, invoiceNumber]
+        );
+
+        res.json({
+            success: true,
+            message: 'Invoice updated successfully',
+            commission_percentage: newCommissionPercentage,
+            commission_amount: newCommissionAmount.toFixed(2),
+            total: newTotal.toFixed(2)
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ==========================================
 // RECONCILIATION ENDPOINTS
 // ==========================================
