@@ -90,11 +90,14 @@ class LatcomAPI {
         }
 
         try {
-            console.log(`📞 Calling Latcom API for ${phone} with $${amount}...`);
+            // Strip country code 52 if present (Latcom expects 10-digit number only)
+            let cleanPhone = phone.replace(/^\+?52/, '');
+
+            console.log(`📞 Calling Latcom API for ${cleanPhone} (original: ${phone}) with $${amount}...`);
 
             // Latcom API format (from documentation page 8-9)
             const requestBody = {
-                targetMSISDN: phone,
+                targetMSISDN: cleanPhone,
                 dist_transid: reference || 'RLR' + Date.now(),
                 operator: "TELEFONICA",
                 country: "MEXICO",
