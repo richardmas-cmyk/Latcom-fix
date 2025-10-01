@@ -1,4 +1,4 @@
-# Latcom Billing System - Scalability Report
+# Relier Billing System - Scalability Report
 **Target:** 10,000 transactions/day (~$30,000 USD daily volume)
 
 ## Current Improvements ✅

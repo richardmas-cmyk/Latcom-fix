@@ -1,4 +1,4 @@
-# Quick Reference - Latcom Billing System
+# Quick Reference - Relier Billing System
 
 ## 🚀 Dashboards
 
@@ -160,7 +160,7 @@ Expected:
 
 ## 🎯 Product Configuration
 
-Current Latcom Product:
+Current Provider Product:
 ```
 productId: TFE_MXN_20_TO_2000
 operator: TELEFONICA
