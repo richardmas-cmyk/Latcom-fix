@@ -1,6 +1,8 @@
 const express = require('express');
 const { createPool } = require('./database-config');
 const latcomAPI = require('./latcom-api');
+const redisCache = require('./redis-cache');
+const queueProcessor = require('./queue-processor');
 const path = require('path');
 
 const app = express();
@@ -117,7 +119,112 @@ app.get('/health', async (req, res) => {
     });
 });
 
-// Main topup endpoint with billing
+// Async topup endpoint with queue (RECOMMENDED - for high volume)
+app.post('/api/enviadespensa/topup-async', async (req, res) => {
+    const apiKey = req.headers['x-api-key'];
+    const customerId = req.headers['x-customer-id'];
+    const { phone, amount, reference } = req.body;
+
+    console.log(`📱 Async Topup request: ${phone} for $${amount}`);
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not available' });
+    }
+
+    if (!queueProcessor.isAvailable()) {
+        // Fallback to sync processing if queue unavailable
+        return res.status(503).json({
+            success: false,
+            error: 'Queue system not available - use /api/enviadespensa/topup endpoint'
+        });
+    }
+
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // Verify customer
+        const custResult = await client.query(
+            'SELECT * FROM customers WHERE api_key = $1 AND customer_id = $2 AND is_active = true',
+            [apiKey, customerId]
+        );
+
+        if (custResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid API credentials'
+            });
+        }
+
+        const customer = custResult.rows[0];
+
+        // Check balance
+        if (parseFloat(customer.current_balance) < parseFloat(amount)) {
+            await client.query('ROLLBACK');
+            return res.status(403).json({
+                success: false,
+                error: 'Insufficient balance',
+                current_balance: parseFloat(customer.current_balance),
+                requested: parseFloat(amount)
+            });
+        }
+
+        const transactionId = 'RLR' + Date.now();
+
+        // Create transaction record with PENDING status
+        await client.query(`
+            INSERT INTO transactions
+            (transaction_id, customer_id, phone, amount, status, reference, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        `, [transactionId, customerId, phone, amount, 'PENDING', reference || '']);
+
+        await client.query('COMMIT');
+
+        // Invalidate customer cache
+        await redisCache.invalidateBalance(customerId);
+
+        // Add job to queue
+        const job = await queueProcessor.addTopupJob({
+            customerId,
+            phone,
+            amount,
+            reference: reference || transactionId,
+            transactionId
+        });
+
+        console.log(`✅ Job ${job.id} queued for processing`);
+
+        // Return immediately with transaction ID
+        res.json({
+            success: true,
+            transaction: {
+                id: transactionId,
+                status: 'PENDING',
+                amount: parseFloat(amount),
+                phone: phone,
+                reference: reference || '',
+                queuedAt: new Date().toISOString(),
+                currency: 'MXN'
+            },
+            message: 'Transaction queued for processing',
+            check_status_url: `/api/transaction/${transactionId}`
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('❌ Queue topup error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Transaction failed: ' + error.message
+        });
+    } finally {
+        client.release();
+    }
+});
+
+// Main topup endpoint with billing (SYNCHRONOUS - for compatibility)
 app.post('/api/enviadespensa/topup', async (req, res) => {
     const apiKey = req.headers['x-api-key'];
     const customerId = req.headers['x-customer-id'];
@@ -271,11 +378,11 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
     }
 });
 
-// Balance check endpoint
+// Balance check endpoint (with Redis caching)
 app.get('/api/balance', async (req, res) => {
     const apiKey = req.headers['x-api-key'];
     const customerId = req.headers['x-customer-id'];
-    
+
     if (!dbConnected) {
         if (apiKey === 'enviadespensa_prod_2025' && customerId === 'ENVIADESPENSA_001') {
             return res.json({
@@ -291,24 +398,97 @@ app.get('/api/balance', async (req, res) => {
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
     }
-    
+
     try {
+        // Try cache first
+        const cached = await redisCache.getBalance(customerId);
+        if (cached) {
+            console.log(`💨 Cache hit for ${customerId}`);
+            return res.json(cached);
+        }
+
+        // Cache miss - query database
         const result = await pool.query(
             'SELECT * FROM customers WHERE api_key = $1 AND customer_id = $2',
             [apiKey, customerId]
         );
-        
+
         if (result.rows.length === 0) {
             return res.status(401).json({ success: false, error: 'Invalid credentials' });
         }
-        
-        res.json({
+
+        const response = {
             success: true,
             customer_id: customerId,
             company_name: result.rows[0].company_name,
             current_balance: parseFloat(result.rows[0].current_balance),
             credit_limit: parseFloat(result.rows[0].credit_limit),
             currency: 'MXN'
+        };
+
+        // Cache the response
+        await redisCache.setBalance(customerId, response);
+
+        res.json(response);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Transaction status check endpoint
+app.get('/api/transaction/:transactionId', async (req, res) => {
+    const { transactionId } = req.params;
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not available' });
+    }
+
+    try {
+        // Get from database
+        const result = await pool.query(
+            'SELECT * FROM transactions WHERE transaction_id = $1',
+            [transactionId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Transaction not found' });
+        }
+
+        const tx = result.rows[0];
+
+        // If still pending, check queue status
+        if (tx.status === 'PENDING' && queueProcessor.isAvailable()) {
+            const jobStatus = await queueProcessor.getJobStatus(transactionId);
+            if (jobStatus) {
+                tx.queue_status = jobStatus.state;
+                tx.queue_progress = jobStatus.progress;
+            }
+        }
+
+        res.json({
+            success: true,
+            transaction: tx
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Queue statistics endpoint
+app.get('/api/queue/stats', async (req, res) => {
+    if (!queueProcessor.isAvailable()) {
+        return res.json({
+            success: false,
+            message: 'Queue system not available'
+        });
+    }
+
+    try {
+        const stats = await queueProcessor.getQueueStats();
+        res.json({
+            success: true,
+            queue: stats,
+            redis: redisCache.isAvailable()
         });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -334,6 +514,9 @@ app.post('/api/admin/add-credit', async (req, res) => {
             [amount, customer_id]
         );
 
+        // Invalidate cache
+        await redisCache.invalidateBalance(customer_id);
+
         res.json({ success: true, message: 'Credit added successfully' });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -348,6 +531,11 @@ app.get('/dashboard', (req, res) => {
 // Admin panel route
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'admin.html'));
+});
+
+// Queue monitor route
+app.get('/queue', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'queue-monitor.html'));
 });
 
 // Get transactions for dashboard
