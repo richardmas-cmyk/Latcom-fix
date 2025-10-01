@@ -857,6 +857,9 @@
                             <p><strong>Cost (USD):</strong> $${amountUSD} USD</p>
                             ${t.exchange_rate ? `<p><strong>Exchange Rate:</strong> 1 MXN = $${parseFloat(t.exchange_rate).toFixed(6)} USD</p>` : '<p><strong>Exchange Rate:</strong> N/A (Legacy transaction)</p>'}
                             <p><strong>Status:</strong> <span style="font-weight: bold; color: ${t.status === 'SUCCESS' ? 'green' : t.status === 'FAILED' ? 'red' : 'orange'};">${t.status}</span></p>
+                            ${t.response_time_ms ? `<p><strong>⏱️ Response Time:</strong> <span style="font-weight: bold; color: ${t.response_time_ms < 2000 ? 'green' : t.response_time_ms < 5000 ? 'orange' : 'red'};">${t.response_time_ms}ms</span></p>` : ''}
+                            ${t.latcom_response_code ? `<p><strong>Latcom Response:</strong> ${t.latcom_response_code}</p>` : ''}
+                            ${t.latcom_response_message ? `<p><strong>Latcom Message:</strong> ${t.latcom_response_message}</p>` : ''}
                             <p><strong>Reference:</strong> ${t.reference || 'N/A'}</p>
                             <p><strong>Operator TX ID:</strong> ${t.operator_transaction_id || 'N/A'}</p>
                             <p><strong>Created:</strong> ${new Date(t.created_at).toLocaleString()}</p>

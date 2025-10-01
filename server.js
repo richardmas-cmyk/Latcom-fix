@@ -60,6 +60,19 @@ async function initDatabase() {
             console.log('⚠️  Migration note:', migrationError.message);
         }
 
+        // Migrate transactions table to add response time tracking
+        try {
+            await pool.query(`
+                ALTER TABLE transactions
+                ADD COLUMN IF NOT EXISTS response_time_ms INTEGER,
+                ADD COLUMN IF NOT EXISTS latcom_response_code VARCHAR(50),
+                ADD COLUMN IF NOT EXISTS latcom_response_message TEXT
+            `);
+            console.log('✅ Database migration: Added response time tracking to transactions table');
+        } catch (migrationError) {
+            console.log('⚠️  Migration note:', migrationError.message);
+        }
+
         // Create tables
         await pool.query(`
             CREATE TABLE IF NOT EXISTS customers (
@@ -368,17 +381,24 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
         `, [transactionId, customerId, phone, amountToDeduct, 'PENDING', reference || '',
             forex.amountMXN, forex.amountUSD, forex.exchangeRate, 'MXN']);
         
-        // Call real Latcom API
+        // Call real Latcom API and measure response time
         let latcomResult;
+        const startTime = Date.now();
         try {
             latcomResult = await latcomAPI.topup(phone, amount, reference);
         } catch (error) {
+            const responseTime = Date.now() - startTime;
+            await client.query(
+                'UPDATE transactions SET response_time_ms = $1, latcom_response_code = $2, latcom_response_message = $3 WHERE transaction_id = $4',
+                [responseTime, 'ERROR', error.message, transactionId]
+            );
             await client.query('ROLLBACK');
             return res.status(500).json({
                 success: false,
                 error: 'Latcom API error: ' + error.message
             });
         }
+        const responseTime = Date.now() - startTime;
 
         if (latcomResult.success) {
             const operatorId = latcomResult.operatorTransactionId;
@@ -387,7 +407,7 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
                 'UPDATE customers SET current_balance = $1 WHERE customer_id = $2',
                 [newBalance, customerId]
             );
-            
+
             // Create billing record (amount in USD)
             await client.query(`
                 INSERT INTO billing_records
@@ -401,11 +421,14 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
                 customer.current_balance,
                 newBalance
             ]);
-            
-            // Update transaction status
+
+            // Update transaction status with response time
             await client.query(
-                'UPDATE transactions SET status = $1, operator_transaction_id = $2, processed_at = NOW() WHERE transaction_id = $3',
-                ['SUCCESS', operatorId, transactionId]
+                `UPDATE transactions SET status = $1, operator_transaction_id = $2, processed_at = NOW(),
+                 response_time_ms = $3, latcom_response_code = $4, latcom_response_message = $5
+                 WHERE transaction_id = $6`,
+                ['SUCCESS', operatorId, responseTime, latcomResult.success ? 'SUCCESS' : 'FAILED',
+                 latcomResult.message || 'Success', transactionId]
             );
             
             await client.query('COMMIT');
@@ -436,11 +459,18 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
                 remaining_balance: newBalance
             });
         } else {
-            // Latcom failed - rollback transaction
+            // Latcom failed - update transaction with failure details
+            await client.query(
+                `UPDATE transactions SET status = $1, response_time_ms = $2,
+                 latcom_response_code = $3, latcom_response_message = $4, processed_at = NOW()
+                 WHERE transaction_id = $5`,
+                ['FAILED', responseTime, 'FAILED', latcomResult.message, transactionId]
+            );
             await client.query('ROLLBACK');
             return res.status(500).json({
                 success: false,
-                error: 'Latcom top-up failed: ' + latcomResult.message
+                error: 'Latcom top-up failed: ' + latcomResult.message,
+                response_time_ms: responseTime
             });
         }
         
@@ -687,6 +717,11 @@ app.get('/dashboard', (req, res) => {
 // Admin panel route
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'admin.html'));
+});
+
+// Real-time monitoring dashboard route
+app.get('/monitor', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'monitor.html'));
 });
 
 // Queue monitor route
@@ -968,6 +1003,82 @@ app.get('/api/admin/invoice/:invoiceNumber', async (req, res) => {
             success: true,
             invoice: invoiceResult.rows[0],
             items: itemsResult.rows
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get real-time system metrics (Admin only)
+app.get('/api/admin/metrics', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.json({ success: true, metrics: {} });
+    }
+
+    try {
+        // Average response time (last 100 transactions)
+        const avgTimeResult = await pool.query(`
+            SELECT AVG(response_time_ms) as avg_time,
+                   MIN(response_time_ms) as min_time,
+                   MAX(response_time_ms) as max_time
+            FROM transactions
+            WHERE response_time_ms IS NOT NULL
+            AND created_at >= NOW() - INTERVAL '24 hours'
+        `);
+
+        // Success/Failure rates (last 24 hours)
+        const statusResult = await pool.query(`
+            SELECT status, COUNT(*) as count
+            FROM transactions
+            WHERE created_at >= NOW() - INTERVAL '24 hours'
+            GROUP BY status
+        `);
+
+        // Transactions per hour (last 24 hours)
+        const tphResult = await pool.query(`
+            SELECT COUNT(*) as count
+            FROM transactions
+            WHERE created_at >= NOW() - INTERVAL '1 hour'
+        `);
+
+        // Last 10 transactions with response times
+        const recentResult = await pool.query(`
+            SELECT transaction_id, phone, amount_mxn, status, response_time_ms,
+                   latcom_response_code, created_at
+            FROM transactions
+            WHERE response_time_ms IS NOT NULL
+            ORDER BY created_at DESC
+            LIMIT 10
+        `);
+
+        const avgTime = avgTimeResult.rows[0];
+        const statusCounts = {};
+        statusResult.rows.forEach(row => {
+            statusCounts[row.status] = parseInt(row.count);
+        });
+
+        const totalTransactions = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+        const successRate = totalTransactions > 0 ? ((statusCounts.SUCCESS || 0) / totalTransactions * 100).toFixed(1) : 0;
+
+        res.json({
+            success: true,
+            metrics: {
+                average_response_time_ms: avgTime.avg_time ? parseFloat(avgTime.avg_time).toFixed(0) : null,
+                min_response_time_ms: avgTime.min_time || null,
+                max_response_time_ms: avgTime.max_time || null,
+                transactions_last_hour: parseInt(tphResult.rows[0].count),
+                transactions_last_24h: totalTransactions,
+                success_rate_24h: parseFloat(successRate),
+                status_counts: statusCounts,
+                recent_transactions: recentResult.rows
+            },
+            timestamp: new Date().toISOString()
         });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
