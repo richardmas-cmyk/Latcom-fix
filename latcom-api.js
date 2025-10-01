@@ -125,7 +125,7 @@ class LatcomAPI {
             console.log('✅ Latcom response:', JSON.stringify(response.data));
 
             // Parse Latcom response (page 11-12)
-            if (response.data && response.data.status === 'SUCCESS') {
+            if (response.data && (response.data.status === 'Success' || response.data.status === 'SUCCESS')) {
                 return {
                     success: true,
                     operatorTransactionId: response.data.transId || response.data.venTransid || 'LATCOM_' + Date.now(),
