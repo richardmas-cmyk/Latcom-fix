@@ -101,7 +101,7 @@ class LatcomAPI {
                 dist_transid: reference || 'RLR' + Date.now(),
                 operator: "TELEFONICA",
                 country: "MEXICO",
-                currency: "USD",
+                currency: "MXN",
                 amount: amount,
                 productId: "TFE_MEXICO_TOPUP_103_2579_MXN",
                 skuID: "0",
