@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conciliación - Relier Billing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .controls {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .controls h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 0.9em;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-export {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-export:hover {
+            background: #d97706;
+            transform: translateY(-2px);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+
+        .summary-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .summary-value.success {
+            color: #10b981;
+        }
+
+        .summary-value.failed {
+            color: #ef4444;
+        }
+
+        .summary-value.pending {
+            color: #f59e0b;
+        }
+
+        .section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1200px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 0.9em;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: bold;
+            color: #667eea;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        .status-success {
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .status-failed {
+            color: #ef4444;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            color: #f59e0b;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Portal de Conciliación</h1>
+        <div class="subtitle">
+            Sistema de reconciliación y análisis de transacciones
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <h2>Filtros de Búsqueda</h2>
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>Fecha Desde:</label>
+                    <input type="date" id="dateFrom" value="">
+                </div>
+                <div class="filter-group">
+                    <label>Fecha Hasta:</label>
+                    <input type="date" id="dateTo" value="">
+                </div>
+                <div class="filter-group">
+                    <label>Cliente:</label>
+                    <select id="customerId">
+                        <option value="">Todos los clientes</option>
+                        <option value="ENVIADESPENSA_001">EnviaDespensa</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Estado:</label>
+                    <select id="status">
+                        <option value="">Todos</option>
+                        <option value="SUCCESS">Exitosas</option>
+                        <option value="FAILED">Fallidas</option>
+                        <option value="PENDING">Pendientes</option>
+                    </select>
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn-primary" onclick="loadReconciliation()">🔍 Buscar Transacciones</button>
+                <button class="btn-success" onclick="loadDailySummary()">📊 Ver Resumen Diario</button>
+                <button class="btn-export" onclick="exportToCSV()">📥 Exportar a CSV</button>
+            </div>
+        </div>
+
+        <!-- Summary Cards -->
+        <div class="summary-grid" id="summaryCards" style="display: none;">
+            <div class="summary-card">
+                <div class="summary-label">Total Transacciones</div>
+                <div class="summary-value" id="totalTx">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Total MXN</div>
+                <div class="summary-value" id="totalMxn">$0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Total USD</div>
+                <div class="summary-value" id="totalUsd">$0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Exitosas</div>
+                <div class="summary-value success" id="successCount">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Fallidas</div>
+                <div class="summary-value failed" id="failedCount">0</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">Pendientes</div>
+                <div class="summary-value pending" id="pendingCount">0</div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="section">
+            <h2 id="sectionTitle">📋 Transacciones</h2>
+            <div id="loadingDiv" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                Cargando datos...
+            </div>
+            <div id="noDataDiv" class="no-data">
+                Selecciona un rango de fechas y presiona "Buscar Transacciones"
+            </div>
+            <table id="transactionsTable" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Fecha/Hora</th>
+                        <th>TX ID</th>
+                        <th>Cliente</th>
+                        <th>Teléfono</th>
+                        <th>Monto MXN</th>
+                        <th>Monto USD</th>
+                        <th>Forex</th>
+                        <th>Estado</th>
+                        <th>Tiempo Resp.</th>
+                        <th>Código Latcom</th>
+                        <th>Operador TX ID</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = window.location.origin;
+        const ADMIN_KEY = prompt('Ingresa la clave de administrador:');
+
+        // Set default dates (last 30 days)
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+
+        document.getElementById('dateFrom').value = thirtyDaysAgo.toISOString().split('T')[0];
+        document.getElementById('dateTo').value = today.toISOString().split('T')[0];
+
+        async function loadReconciliation() {
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            const customerId = document.getElementById('customerId').value;
+            const status = document.getElementById('status').value;
+
+            if (!dateFrom || !dateTo) {
+                alert('Por favor selecciona un rango de fechas');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingDiv').style.display = 'block';
+            document.getElementById('noDataDiv').style.display = 'none';
+            document.getElementById('transactionsTable').style.display = 'none';
+            document.getElementById('summaryCards').style.display = 'none';
+
+            try {
+                const params = new URLSearchParams({
+                    date_from: dateFrom + 'T00:00:00Z',
+                    date_to: dateTo + 'T23:59:59Z'
+                });
+
+                if (customerId) params.append('customer_id', customerId);
+                if (status) params.append('status', status);
+
+                const response = await fetch(`${BASE_URL}/api/admin/reconcile?${params}`, {
+                    headers: { 'x-admin-key': ADMIN_KEY }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al cargar transacciones');
+                }
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Error desconocido');
+                }
+
+                // Update summary cards
+                document.getElementById('totalTx').textContent = data.summary.total_transactions;
+                document.getElementById('totalMxn').textContent = '$' + data.summary.total_mxn.toFixed(2);
+                document.getElementById('totalUsd').textContent = '$' + data.summary.total_usd.toFixed(2);
+                document.getElementById('successCount').textContent = data.summary.success_count;
+                document.getElementById('failedCount').textContent = data.summary.failed_count;
+                document.getElementById('pendingCount').textContent = data.summary.pending_count;
+                document.getElementById('summaryCards').style.display = 'grid';
+
+                // Update transactions table
+                const tbody = document.getElementById('transactionsBody');
+                if (data.transactions && data.transactions.length > 0) {
+                    tbody.innerHTML = data.transactions.map(tx => {
+                        const statusClass = tx.status === 'SUCCESS' ? 'status-success' :
+                                          tx.status === 'FAILED' ? 'status-failed' : 'status-pending';
+                        const responseTime = tx.response_time_ms ? (tx.response_time_ms / 1000).toFixed(2) + 's' : 'N/A';
+
+                        return `
+                            <tr>
+                                <td>${new Date(tx.created_at).toLocaleString('es-MX')}</td>
+                                <td style="font-size: 0.8em;">${tx.transaction_id}</td>
+                                <td>${tx.company_name || tx.customer_id}</td>
+                                <td>${tx.phone}</td>
+                                <td>$${parseFloat(tx.amount_mxn || 0).toFixed(2)}</td>
+                                <td>$${parseFloat(tx.amount_usd || 0).toFixed(2)}</td>
+                                <td>${parseFloat(tx.forex_rate || 0).toFixed(4)}</td>
+                                <td class="${statusClass}">${tx.status}</td>
+                                <td>${responseTime}</td>
+                                <td>${tx.latcom_response_code || 'N/A'}</td>
+                                <td style="font-size: 0.8em;">${tx.operator_transaction_id || 'N/A'}</td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    document.getElementById('transactionsTable').style.display = 'table';
+                    document.getElementById('sectionTitle').textContent = `📋 Transacciones (${data.transactions.length})`;
+                } else {
+                    document.getElementById('noDataDiv').innerHTML = 'No se encontraron transacciones en este rango';
+                    document.getElementById('noDataDiv').style.display = 'block';
+                }
+
+                document.getElementById('loadingDiv').style.display = 'none';
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loadingDiv').style.display = 'none';
+                document.getElementById('noDataDiv').innerHTML = `Error: ${error.message}`;
+                document.getElementById('noDataDiv').style.display = 'block';
+                alert('Error al cargar datos: ' + error.message);
+            }
+        }
+
+        async function loadDailySummary() {
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+
+            if (!dateFrom || !dateTo) {
+                alert('Por favor selecciona un rango de fechas');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingDiv').style.display = 'block';
+            document.getElementById('noDataDiv').style.display = 'none';
+            document.getElementById('transactionsTable').style.display = 'none';
+
+            try {
+                const params = new URLSearchParams({
+                    date_from: dateFrom + 'T00:00:00Z',
+                    date_to: dateTo + 'T23:59:59Z'
+                });
+
+                const response = await fetch(`${BASE_URL}/api/admin/reconcile/summary?${params}`, {
+                    headers: { 'x-admin-key': ADMIN_KEY }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al cargar resumen');
+                }
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Error desconocido');
+                }
+
+                // Update table with daily summary
+                const tbody = document.getElementById('transactionsBody');
+                const thead = document.querySelector('#transactionsTable thead tr');
+
+                thead.innerHTML = `
+                    <th>Fecha</th>
+                    <th>Total TX</th>
+                    <th>Exitosas</th>
+                    <th>Fallidas</th>
+                    <th>Total MXN</th>
+                    <th>Total USD</th>
+                    <th>Tiempo Resp. Prom.</th>
+                `;
+
+                if (data.daily_summary && data.daily_summary.length > 0) {
+                    tbody.innerHTML = data.daily_summary.map(day => {
+                        const avgTime = day.avg_response_time ? (day.avg_response_time / 1000).toFixed(2) + 's' : 'N/A';
+                        return `
+                            <tr>
+                                <td><strong>${new Date(day.date).toLocaleDateString('es-MX')}</strong></td>
+                                <td>${day.total_transactions}</td>
+                                <td class="status-success">${day.success_count}</td>
+                                <td class="status-failed">${day.failed_count}</td>
+                                <td>$${parseFloat(day.total_mxn || 0).toFixed(2)}</td>
+                                <td>$${parseFloat(day.total_usd || 0).toFixed(2)}</td>
+                                <td>${avgTime}</td>
+                            </tr>
+                        `;
+                    }).join('');
+
+                    document.getElementById('transactionsTable').style.display = 'table';
+                    document.getElementById('sectionTitle').textContent = `📊 Resumen Diario (${data.daily_summary.length} días)`;
+                } else {
+                    document.getElementById('noDataDiv').innerHTML = 'No se encontraron datos en este rango';
+                    document.getElementById('noDataDiv').style.display = 'block';
+                }
+
+                document.getElementById('loadingDiv').style.display = 'none';
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loadingDiv').style.display = 'none';
+                document.getElementById('noDataDiv').innerHTML = `Error: ${error.message}`;
+                document.getElementById('noDataDiv').style.display = 'block';
+                alert('Error al cargar resumen: ' + error.message);
+            }
+        }
+
+        async function exportToCSV() {
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            const customerId = document.getElementById('customerId').value;
+
+            if (!dateFrom || !dateTo) {
+                alert('Por favor selecciona un rango de fechas');
+                return;
+            }
+
+            const params = new URLSearchParams({
+                date_from: dateFrom + 'T00:00:00Z',
+                date_to: dateTo + 'T23:59:59Z'
+            });
+
+            if (customerId) params.append('customer_id', customerId);
+
+            const url = `${BASE_URL}/api/admin/reconcile/export?${params}&x-admin-key=${ADMIN_KEY}`;
+
+            // Open in new window to download
+            window.open(url, '_blank');
+        }
+
+        // Auto-load on startup if admin key is provided
+        if (ADMIN_KEY) {
+            // Initial view shows message
+        } else {
+            document.getElementById('noDataDiv').innerHTML = 'Se requiere acceso de administrador';
+        }
+    </script>
+</body>
+</html>

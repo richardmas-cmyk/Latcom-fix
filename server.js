@@ -1138,6 +1138,208 @@ app.get('/api/admin/alert-status', async (req, res) => {
     });
 });
 
+// ==========================================
+// RECONCILIATION ENDPOINTS
+// ==========================================
+
+// Get reconciliation portal
+app.get('/reconcile', (req, res) => {
+    res.sendFile(__dirname + '/views/reconcile.html');
+});
+
+// Get transactions for reconciliation with date range
+app.get('/api/admin/reconcile', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const { date_from, date_to, customer_id, status } = req.query;
+
+    try {
+        let query = `
+            SELECT
+                t.transaction_id,
+                t.customer_id,
+                t.phone,
+                t.amount_mxn,
+                t.amount_usd,
+                t.forex_rate,
+                t.status,
+                t.created_at,
+                t.response_time_ms,
+                t.latcom_response_code,
+                t.latcom_response_message,
+                t.operator_transaction_id,
+                c.company_name
+            FROM transactions t
+            LEFT JOIN customers c ON t.customer_id = c.customer_id
+            WHERE 1=1
+        `;
+
+        const params = [];
+        let paramCount = 1;
+
+        if (date_from) {
+            query += ` AND t.created_at >= $${paramCount}`;
+            params.push(date_from);
+            paramCount++;
+        }
+
+        if (date_to) {
+            query += ` AND t.created_at <= $${paramCount}`;
+            params.push(date_to);
+            paramCount++;
+        }
+
+        if (customer_id) {
+            query += ` AND t.customer_id = $${paramCount}`;
+            params.push(customer_id);
+            paramCount++;
+        }
+
+        if (status) {
+            query += ` AND t.status = $${paramCount}`;
+            params.push(status);
+            paramCount++;
+        }
+
+        query += ` ORDER BY t.created_at DESC LIMIT 1000`;
+
+        const result = await pool.query(query, params);
+
+        // Calculate summary statistics
+        const summary = {
+            total_transactions: result.rows.length,
+            total_mxn: result.rows.reduce((sum, t) => sum + parseFloat(t.amount_mxn || 0), 0),
+            total_usd: result.rows.reduce((sum, t) => sum + parseFloat(t.amount_usd || 0), 0),
+            success_count: result.rows.filter(t => t.status === 'SUCCESS').length,
+            failed_count: result.rows.filter(t => t.status === 'FAILED').length,
+            pending_count: result.rows.filter(t => t.status === 'PENDING').length
+        };
+
+        res.json({
+            success: true,
+            transactions: result.rows,
+            summary: summary
+        });
+
+    } catch (error) {
+        console.error('Reconciliation error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get reconciliation summary by date
+app.get('/api/admin/reconcile/summary', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const { date_from, date_to } = req.query;
+
+    try {
+        const query = `
+            SELECT
+                DATE(created_at) as date,
+                COUNT(*) as total_transactions,
+                SUM(CASE WHEN status = 'SUCCESS' THEN 1 ELSE 0 END) as success_count,
+                SUM(CASE WHEN status = 'FAILED' THEN 1 ELSE 0 END) as failed_count,
+                SUM(amount_mxn) as total_mxn,
+                SUM(amount_usd) as total_usd,
+                AVG(response_time_ms) as avg_response_time
+            FROM transactions
+            WHERE created_at >= $1 AND created_at <= $2
+            GROUP BY DATE(created_at)
+            ORDER BY date DESC
+        `;
+
+        const result = await pool.query(query, [date_from || '2025-01-01', date_to || '2025-12-31']);
+
+        res.json({
+            success: true,
+            daily_summary: result.rows
+        });
+
+    } catch (error) {
+        console.error('Summary error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Export reconciliation data to CSV
+app.get('/api/admin/reconcile/export', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    const { date_from, date_to, customer_id } = req.query;
+
+    try {
+        let query = `
+            SELECT
+                t.transaction_id,
+                t.customer_id,
+                c.company_name,
+                t.phone,
+                t.amount_mxn,
+                t.amount_usd,
+                t.forex_rate,
+                t.status,
+                t.created_at,
+                t.response_time_ms,
+                t.latcom_response_code,
+                t.latcom_response_message,
+                t.operator_transaction_id
+            FROM transactions t
+            LEFT JOIN customers c ON t.customer_id = c.customer_id
+            WHERE 1=1
+        `;
+
+        const params = [];
+        let paramCount = 1;
+
+        if (date_from) {
+            query += ` AND t.created_at >= $${paramCount}`;
+            params.push(date_from);
+            paramCount++;
+        }
+
+        if (date_to) {
+            query += ` AND t.created_at <= $${paramCount}`;
+            params.push(date_to);
+            paramCount++;
+        }
+
+        if (customer_id) {
+            query += ` AND t.customer_id = $${paramCount}`;
+            params.push(customer_id);
+            paramCount++;
+        }
+
+        query += ` ORDER BY t.created_at DESC`;
+
+        const result = await pool.query(query, params);
+
+        // Generate CSV
+        let csv = 'Transaction ID,Customer ID,Company,Phone,Amount MXN,Amount USD,Forex Rate,Status,Date,Response Time (ms),Latcom Code,Latcom Message,Operator TX ID\n';
+
+        result.rows.forEach(row => {
+            csv += `"${row.transaction_id}","${row.customer_id}","${row.company_name || ''}","${row.phone}",${row.amount_mxn},${row.amount_usd},${row.forex_rate},"${row.status}","${row.created_at}",${row.response_time_ms || ''},"${row.latcom_response_code || ''}","${row.latcom_response_message || ''}","${row.operator_transaction_id || ''}"\n`;
+        });
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename=reconciliation_${date_from}_to_${date_to}.csv`);
+        res.send(csv);
+
+    } catch (error) {
+        console.error('Export error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Start server
 const PORT = process.env.PORT || 8080;
 
