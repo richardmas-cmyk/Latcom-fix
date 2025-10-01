@@ -3,6 +3,7 @@ const { createPool } = require('./database-config');
 const latcomAPI = require('./latcom-api');
 const redisCache = require('./redis-cache');
 const queueProcessor = require('./queue-processor');
+const forexConverter = require('./forex-converter');
 const path = require('path');
 
 const app = express();
@@ -60,6 +61,10 @@ async function initDatabase() {
                 status VARCHAR(20),
                 reference VARCHAR(100),
                 operator_transaction_id VARCHAR(100),
+                amount_mxn DECIMAL(10,2),
+                amount_usd DECIMAL(10,4),
+                exchange_rate DECIMAL(10,6),
+                currency VARCHAR(10) DEFAULT 'MXN',
                 created_at TIMESTAMP DEFAULT NOW(),
                 processed_at TIMESTAMP
             )
@@ -276,27 +281,37 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
         }
         
         const customer = custResult.rows[0];
-        
-        // Check balance
-        if (parseFloat(customer.current_balance) < parseFloat(amount)) {
+
+        // Convert MXN to USD using real-time forex
+        const forex = await forexConverter.convertMXNtoUSD(amount);
+        const amountToDeduct = forex.amountUSD; // Deduct USD from balance
+
+        console.log(`💱 Transaction: ${amount} MXN → $${amountToDeduct} USD (rate: ${forex.exchangeRate})`);
+
+        // Check balance (customer balance is in USD)
+        if (parseFloat(customer.current_balance) < amountToDeduct) {
             await client.query('ROLLBACK');
             return res.status(403).json({
                 success: false,
                 error: 'Insufficient balance',
-                current_balance: parseFloat(customer.current_balance),
-                requested: parseFloat(amount)
+                current_balance_usd: parseFloat(customer.current_balance),
+                requested_mxn: parseFloat(amount),
+                required_usd: amountToDeduct,
+                exchange_rate: forex.exchangeRate
             });
         }
-        
+
         const transactionId = 'RLR' + Date.now();
-        const newBalance = parseFloat(customer.current_balance) - parseFloat(amount);
-        
-        // Create transaction record
+        const newBalance = parseFloat(customer.current_balance) - amountToDeduct;
+
+        // Create transaction record with forex data
         await client.query(`
-            INSERT INTO transactions 
-            (transaction_id, customer_id, phone, amount, status, reference, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, NOW())
-        `, [transactionId, customerId, phone, amount, 'PENDING', reference || '']);
+            INSERT INTO transactions
+            (transaction_id, customer_id, phone, amount, status, reference,
+             amount_mxn, amount_usd, exchange_rate, currency, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+        `, [transactionId, customerId, phone, amountToDeduct, 'PENDING', reference || '',
+            forex.amountMXN, forex.amountUSD, forex.exchangeRate, 'MXN']);
         
         // Call real Latcom API
         let latcomResult;
@@ -318,17 +333,17 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
                 [newBalance, customerId]
             );
             
-            // Create billing record
+            // Create billing record (amount in USD)
             await client.query(`
-                INSERT INTO billing_records 
+                INSERT INTO billing_records
                 (customer_id, transaction_id, amount, type, balance_before, balance_after)
                 VALUES ($1, $2, $3, $4, $5, $6)
             `, [
-                customerId, 
-                transactionId, 
-                amount, 
-                'debit', 
-                customer.current_balance, 
+                customerId,
+                transactionId,
+                amountToDeduct, // USD amount deducted
+                'debit',
+                customer.current_balance,
                 newBalance
             ]);
             
@@ -340,21 +355,29 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
             
             await client.query('COMMIT');
             
-            console.log(`✅ Transaction ${transactionId} successful. Balance: ${customer.current_balance} → ${newBalance}`);
-            
+            console.log(`✅ Transaction ${transactionId} successful. Balance: $${customer.current_balance} → $${newBalance} USD`);
+
             res.json({
                 success: true,
                 transaction: {
                     id: transactionId,
                     status: 'SUCCESS',
-                    amount: parseFloat(amount),
+                    amount_mxn: forex.amountMXN,
+                    amount_usd: forex.amountUSD,
+                    exchange_rate: forex.exchangeRate,
                     phone: phone,
                     reference: reference || '',
                     operatorTransactionId: operatorId,
                     processedAt: new Date().toISOString(),
                     currency: 'MXN'
                 },
-                message: 'Top-up processed successfully',
+                billing: {
+                    deducted_usd: amountToDeduct,
+                    balance_before_usd: parseFloat(customer.current_balance),
+                    balance_after_usd: newBalance,
+                    exchange_rate: forex.exchangeRate
+                },
+                message: `Top-up of ${amount} MXN processed successfully. $${amountToDeduct} USD deducted from balance.`,
                 remaining_balance: newBalance
             });
         } else {
