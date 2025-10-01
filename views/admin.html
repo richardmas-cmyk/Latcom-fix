@@ -397,9 +397,15 @@
                     headers: { 'x-admin-key': ADMIN_KEY }
                 });
 
-                if (!response.ok) throw new Error('Unauthorized');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
 
                 const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to load customers');
+                }
                 const customers = data.customers || [];
 
                 // Update dropdown
@@ -451,7 +457,16 @@
                     headers: { 'x-admin-key': ADMIN_KEY }
                 });
 
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
                 const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to load transactions');
+                }
+
                 allTransactions = data.transactions || [];
                 filteredTransactions = allTransactions;
 
@@ -459,7 +474,10 @@
                 renderTransactions();
 
             } catch (error) {
+                console.error('Transaction load error:', error);
                 showAlert('Failed to load transactions: ' + error.message, 'error');
+                document.getElementById('transactionsBody').innerHTML =
+                    `<tr><td colspan="8" style="text-align: center; color: red;">Error: ${error.message}</td></tr>`;
             }
         }
 
@@ -487,18 +505,23 @@
                 return;
             }
 
-            tbody.innerHTML = page.map(t => `
-                <tr>
-                    <td>${new Date(t.created_at).toLocaleString()}</td>
-                    <td>${t.customer_id}</td>
-                    <td>${t.phone}</td>
-                    <td>${t.amount_mxn ? t.amount_mxn.toFixed(2) : parseFloat(t.amount).toFixed(2)} MXN</td>
-                    <td>$${t.amount_usd ? t.amount_usd.toFixed(2) : parseFloat(t.amount).toFixed(2)} USD</td>
-                    <td>${t.status}</td>
-                    <td style="font-size: 0.85em;">${t.transaction_id}</td>
-                    <td><button onclick="viewTransactionLog('${t.transaction_id}')" style="padding: 5px 10px; font-size: 0.9em;">View Log</button></td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = page.map(t => {
+                const amountMXN = t.amount_mxn ? parseFloat(t.amount_mxn).toFixed(2) : parseFloat(t.amount || 0).toFixed(2);
+                const amountUSD = t.amount_usd ? parseFloat(t.amount_usd).toFixed(2) : parseFloat(t.amount || 0).toFixed(2);
+
+                return `
+                    <tr>
+                        <td>${new Date(t.created_at).toLocaleString()}</td>
+                        <td>${t.customer_id}</td>
+                        <td>${t.phone}</td>
+                        <td>${amountMXN} MXN</td>
+                        <td>$${amountUSD} USD</td>
+                        <td>${t.status}</td>
+                        <td style="font-size: 0.85em;">${t.transaction_id}</td>
+                        <td><button onclick="viewTransactionLog('${t.transaction_id}')" style="padding: 5px 10px; font-size: 0.9em;">View Log</button></td>
+                    </tr>
+                `;
+            }).join('');
 
             const totalPages = Math.ceil(filteredTransactions.length / pageSize);
             document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
@@ -661,6 +684,9 @@
                     const t = data.transaction;
                     const b = data.billing;
 
+                    const amountMXN = t.amount_mxn ? parseFloat(t.amount_mxn).toFixed(2) : parseFloat(t.amount || 0).toFixed(2);
+                    const amountUSD = t.amount_usd ? parseFloat(t.amount_usd).toFixed(4) : parseFloat(t.amount || 0).toFixed(2);
+
                     let logHtml = `
                         <div style="background: white; padding: 20px; border-radius: 10px; max-width: 800px; margin: 20px auto;">
                             <h2>Transaction Log</h2>
@@ -668,11 +694,12 @@
 
                             <h3>Transaction Details</h3>
                             <p><strong>ID:</strong> ${t.transaction_id}</p>
+                            <p><strong>Customer:</strong> ${t.customer_id}</p>
                             <p><strong>Phone:</strong> ${t.phone}</p>
-                            <p><strong>Amount (MXN):</strong> ${t.amount_mxn || t.amount} MXN</p>
-                            <p><strong>Cost (USD):</strong> $${t.amount_usd || t.amount} USD</p>
-                            ${t.exchange_rate ? `<p><strong>Exchange Rate:</strong> 1 MXN = $${t.exchange_rate} USD</p>` : ''}
-                            <p><strong>Status:</strong> <span class="status-${t.status.toLowerCase()}">${t.status}</span></p>
+                            <p><strong>Amount (MXN):</strong> ${amountMXN} MXN</p>
+                            <p><strong>Cost (USD):</strong> $${amountUSD} USD</p>
+                            ${t.exchange_rate ? `<p><strong>Exchange Rate:</strong> 1 MXN = $${parseFloat(t.exchange_rate).toFixed(6)} USD</p>` : '<p><strong>Exchange Rate:</strong> N/A (Legacy transaction)</p>'}
+                            <p><strong>Status:</strong> <span style="font-weight: bold; color: ${t.status === 'SUCCESS' ? 'green' : t.status === 'FAILED' ? 'red' : 'orange'};">${t.status}</span></p>
                             <p><strong>Reference:</strong> ${t.reference || 'N/A'}</p>
                             <p><strong>Operator TX ID:</strong> ${t.operator_transaction_id || 'N/A'}</p>
                             <p><strong>Created:</strong> ${new Date(t.created_at).toLocaleString()}</p>
@@ -680,9 +707,9 @@
 
                             ${b ? `
                                 <h3 style="margin-top: 20px;">Billing Details</h3>
-                                <p><strong>Amount Deducted:</strong> $${b.amount} USD</p>
-                                <p><strong>Balance Before:</strong> $${b.balance_before}</p>
-                                <p><strong>Balance After:</strong> $${b.balance_after}</p>
+                                <p><strong>Amount Deducted:</strong> $${parseFloat(b.amount).toFixed(2)} USD</p>
+                                <p><strong>Balance Before:</strong> $${parseFloat(b.balance_before).toFixed(2)}</p>
+                                <p><strong>Balance After:</strong> $${parseFloat(b.balance_after).toFixed(2)}</p>
                             ` : ''}
 
                             ${data.latcom_status && data.latcom_status.success ? `
@@ -690,10 +717,12 @@
                                 <pre style="background: #f0f0f0; padding: 10px; border-radius: 5px; overflow: auto;">${JSON.stringify(data.latcom_status.status, null, 2)}</pre>
                             ` : ''}
 
-                            <h3 style="margin-top: 20px;">Status History</h3>
-                            ${data.logs.status_history.map(log => `
-                                <p>• ${new Date(log.timestamp).toLocaleString()} - <strong>${log.status}</strong>: ${log.note}</p>
-                            `).join('')}
+                            ${data.logs && data.logs.status_history ? `
+                                <h3 style="margin-top: 20px;">Status History</h3>
+                                ${data.logs.status_history.map(log => `
+                                    <p>• ${new Date(log.timestamp).toLocaleString()} - <strong>${log.status}</strong>: ${log.note}</p>
+                                `).join('')}
+                            ` : ''}
 
                             <button onclick="closeLogModal()" style="margin-top: 20px; width: 100%;">Close</button>
                         </div>
