@@ -165,7 +165,7 @@ class LatcomAPI {
      * Check if Latcom API is configured
      */
     isConfigured() {
-        return !!(this.apiUrl && this.username && this.password);
+        return !!(this.baseUrl && this.username && this.password);
     }
 }
 
