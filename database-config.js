@@ -28,7 +28,11 @@ function createPool() {
     console.log('🔧 Attempting connection with SSL disabled...');
 
     return new Pool({
-        connectionString: urlNoSSL
+        connectionString: urlNoSSL,
+        max: 20, // Max 20 connections for high volume
+        min: 5,  // Keep 5 connections always ready
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000
     });
 }
 

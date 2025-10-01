@@ -345,6 +345,11 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
 });
 
+// Admin panel route
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'admin.html'));
+});
+
 // Get transactions for dashboard
 app.get('/api/admin/transactions', async (req, res) => {
     const apiKey = req.headers['x-api-key'];
@@ -379,6 +384,48 @@ app.get('/api/admin/transactions', async (req, res) => {
             success: true,
             transactions: result.rows
         });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get all customers (admin only)
+app.get('/api/admin/customers', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not available' });
+    }
+
+    try {
+        const result = await pool.query('SELECT * FROM customers ORDER BY created_at DESC');
+        res.json({ success: true, customers: result.rows });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get all transactions across all customers (admin only)
+app.get('/api/admin/all-transactions', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.json({ success: true, transactions: [] });
+    }
+
+    try {
+        const result = await pool.query(
+            'SELECT * FROM transactions ORDER BY created_at DESC LIMIT 1000'
+        );
+        res.json({ success: true, transactions: result.rows });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
