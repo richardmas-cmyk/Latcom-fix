@@ -95,15 +95,15 @@ class LatcomAPI {
 
             console.log(`📞 Calling Latcom API for ${cleanPhone} (original: ${phone}) with $${amount}...`);
 
-            // Latcom API format (from documentation page 8-9)
+            // Latcom API format - open range 20-200 MXN
             const requestBody = {
                 targetMSISDN: cleanPhone,
                 dist_transid: reference || 'RLR' + Date.now(),
                 operator: "TELEFONICA",
                 country: "MEXICO",
-                currency: "USD",
+                currency: "MXN",
                 amount: amount,
-                productId: "TFE_MEXICO_TOPUP_103_2579_MXN",
+                productId: "TFE_MXN_20_TO_2000",
                 skuID: "0",
                 service: 2
             };
