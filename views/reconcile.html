@@ -529,15 +529,35 @@
                 return;
             }
 
-            const params = new URLSearchParams({
-                date_from: dateFrom + 'T00:00:00Z',
-                date_to: dateTo + 'T23:59:59Z'
-            });
+            try {
+                const params = new URLSearchParams({
+                    date_from: dateFrom + 'T00:00:00Z',
+                    date_to: dateTo + 'T23:59:59Z'
+                });
 
-            const url = `${BASE_URL}/api/admin/reconcile/export?${params}&x-reconcile-key=${RECONCILE_KEY}`;
+                const response = await fetch(`${BASE_URL}/api/admin/reconcile/export?${params}`, {
+                    headers: { 'x-reconcile-key': RECONCILE_KEY }
+                });
 
-            // Open in new window to download
-            window.open(url, '_blank');
+                if (!response.ok) {
+                    throw new Error('Error al exportar datos');
+                }
+
+                // Convert response to blob and download
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reconciliacion_${dateFrom}_to_${dateTo}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error al exportar: ' + error.message);
+            }
         }
 
         // Auto-load on startup if reconcile key is provided
