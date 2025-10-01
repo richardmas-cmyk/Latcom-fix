@@ -54,9 +54,9 @@ async function initDatabase() {
         try {
             await pool.query(`
                 ALTER TABLE customers
-                ADD COLUMN IF NOT EXISTS discount_percentage DECIMAL(5,2) DEFAULT 0.00
+                ADD COLUMN IF NOT EXISTS commission_percentage DECIMAL(5,2) DEFAULT 0.00
             `);
-            console.log('✅ Database migration: Added discount_percentage to customers table');
+            console.log('✅ Database migration: Added commission_percentage to customers table');
         } catch (migrationError) {
             console.log('⚠️  Migration note:', migrationError.message);
         }
@@ -130,7 +130,7 @@ async function initDatabase() {
                 date_from TIMESTAMP,
                 date_to TIMESTAMP,
                 subtotal DECIMAL(10,2),
-                discount_percentage DECIMAL(5,2),
+                commission_percentage DECIMAL(5,2),
                 discount_amount DECIMAL(10,2),
                 total DECIMAL(10,2),
                 transaction_count INTEGER,
@@ -830,10 +830,10 @@ app.get('/api/admin/all-transactions', async (req, res) => {
     }
 });
 
-// Update customer discount (Admin only)
-app.post('/api/admin/update-discount', async (req, res) => {
+// Update customer commission (Admin only)
+app.post('/api/admin/update-commission', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    const { customer_id, discount_percentage } = req.body;
+    const { customer_id, commission_percentage } = req.body;
 
     if (adminKey !== process.env.ADMIN_KEY) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
@@ -845,11 +845,11 @@ app.post('/api/admin/update-discount', async (req, res) => {
 
     try {
         await pool.query(
-            'UPDATE customers SET discount_percentage = $1 WHERE customer_id = $2',
-            [discount_percentage, customer_id]
+            'UPDATE customers SET commission_percentage = $1 WHERE customer_id = $2',
+            [commission_percentage, customer_id]
         );
 
-        res.json({ success: true, message: 'Discount updated successfully' });
+        res.json({ success: true, message: 'Commission updated successfully' });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -869,9 +869,9 @@ app.post('/api/admin/generate-invoice', async (req, res) => {
     }
 
     try {
-        // Get customer discount
+        // Get customer commission
         const customerResult = await pool.query(
-            'SELECT discount_percentage, company_name FROM customers WHERE customer_id = $1',
+            'SELECT commission_percentage, company_name FROM customers WHERE customer_id = $1',
             [customer_id]
         );
 
@@ -880,7 +880,7 @@ app.post('/api/admin/generate-invoice', async (req, res) => {
         }
 
         const customer = customerResult.rows[0];
-        const discountPercentage = parseFloat(customer.discount_percentage) || 0;
+        const commissionPercentage = parseFloat(customer.commission_percentage) || 0;
 
         // Get transactions in date range
         const txResult = await pool.query(
@@ -908,9 +908,9 @@ app.post('/api/admin/generate-invoice', async (req, res) => {
             return sum + amount;
         }, 0);
 
-        // Calculate discount
-        const discountAmount = (subtotal * discountPercentage) / 100;
-        const total = subtotal - discountAmount;
+        // Calculate commission
+        const commissionAmount = (subtotal * commissionPercentage) / 100;
+        const total = subtotal + commissionAmount;
 
         // Generate invoice number
         const invoiceNumber = `INV-${customer_id}-${Date.now()}`;
@@ -919,12 +919,12 @@ app.post('/api/admin/generate-invoice', async (req, res) => {
         await pool.query(
             `INSERT INTO invoices
             (invoice_number, customer_id, date_from, date_to, subtotal,
-             discount_percentage, discount_amount, total, transaction_count,
+             commission_percentage, discount_amount, total, transaction_count,
              status, notes, generated_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
             [
                 invoiceNumber, customer_id, date_from, date_to, subtotal.toFixed(2),
-                discountPercentage, discountAmount.toFixed(2), total.toFixed(2),
+                commissionPercentage, commissionAmount.toFixed(2), total.toFixed(2),
                 transactions.length, 'GENERATED', notes || '', 'ADMIN'
             ]
         );
@@ -949,8 +949,8 @@ app.post('/api/admin/generate-invoice', async (req, res) => {
             date_from,
             date_to,
             subtotal: subtotal.toFixed(2),
-            discount_percentage: discountPercentage,
-            discount_amount: discountAmount.toFixed(2),
+            commission_percentage: commissionPercentage,
+            commission_amount: commissionAmount.toFixed(2),
             total: total.toFixed(2),
             transaction_count: transactions.length
         });
@@ -1002,7 +1002,7 @@ app.get('/api/admin/invoice/:invoiceNumber', async (req, res) => {
     try {
         // Get invoice
         const invoiceResult = await pool.query(
-            `SELECT i.*, c.company_name, c.discount_percentage as customer_discount
+            `SELECT i.*, c.company_name, c.commission_percentage as customer_commission
              FROM invoices i
              LEFT JOIN customers c ON i.customer_id = c.customer_id
              WHERE i.invoice_number = $1`,

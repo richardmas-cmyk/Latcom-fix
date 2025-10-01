@@ -296,7 +296,7 @@
                         <th>Company</th>
                         <th>Current Balance</th>
                         <th>Credit Limit</th>
-                        <th>Discount %</th>
+                        <th>Comisión %</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
@@ -330,8 +330,8 @@
 
             <div class="credit-form" style="margin-top: 15px;">
                 <div class="form-group">
-                    <label for="invoiceDiscount">Discount %</label>
-                    <input type="number" id="invoiceDiscount" placeholder="0" step="0.01" min="0" max="100">
+                    <label for="invoiceCommission">Comisión %</label>
+                    <input type="number" id="invoiceCommission" placeholder="0" step="0.01" min="0" max="100">
                 </div>
                 <div class="form-group">
                     <label for="invoiceNotes">Notes (Optional)</label>
@@ -348,7 +348,7 @@
                         <th>Customer</th>
                         <th>Date Range</th>
                         <th>Subtotal</th>
-                        <th>Discount</th>
+                        <th>Comisión</th>
                         <th>Total</th>
                         <th>TXs</th>
                         <th>Actions</th>
@@ -496,10 +496,10 @@
                 invoiceSelect.innerHTML = '<option value="">Select Customer</option>';
 
                 customers.forEach(c => {
-                    const discount = parseFloat(c.discount_percentage || 0);
+                    const commission = parseFloat(c.commission_percentage || 0);
                     select.innerHTML += `<option value="${c.customer_id}">${c.company_name} (${c.customer_id})</option>`;
                     filterSelect.innerHTML += `<option value="${c.customer_id}">${c.company_name}</option>`;
-                    invoiceSelect.innerHTML += `<option value="${c.customer_id}" data-discount="${discount}">${c.company_name} - ${discount}% discount</option>`;
+                    invoiceSelect.innerHTML += `<option value="${c.customer_id}" data-commission="${commission}">${c.company_name} - ${commission}% comisión</option>`;
                 });
 
                 // Update table
@@ -507,7 +507,7 @@
                 tbody.innerHTML = customers.map(c => {
                     const balance = parseFloat(c.current_balance);
                     const limit = parseFloat(c.credit_limit);
-                    const discount = parseFloat(c.discount_percentage || 0);
+                    const commission = parseFloat(c.commission_percentage || 0);
                     const balanceClass = balance > limit * 0.5 ? 'good' : balance > limit * 0.2 ? 'medium' : 'low';
 
                     return `
@@ -516,10 +516,10 @@
                             <td>${c.company_name}</td>
                             <td class="balance ${balanceClass}">$${balance.toFixed(2)}</td>
                             <td>$${limit.toFixed(2)}</td>
-                            <td><input type="number" value="${discount}" id="discount_${c.customer_id}" style="width: 60px;" step="0.01" min="0" max="100">%</td>
+                            <td><input type="number" value="${commission}" id="commission_${c.customer_id}" style="width: 60px;" step="0.01" min="0" max="100">%</td>
                             <td>${c.is_active ? '✅ Active' : '❌ Inactive'}</td>
                             <td>
-                                <button onclick="updateDiscount('${c.customer_id}')" style="padding: 5px 10px; font-size: 0.9em;">Save Discount</button>
+                                <button onclick="updateCommission('${c.customer_id}')" style="padding: 5px 10px; font-size: 0.9em;">Guardar Comisión</button>
                                 <button onclick="viewCustomer('${c.customer_id}')">View</button>
                             </td>
                         </tr>
@@ -909,30 +909,30 @@
             }
         }
 
-        // Update customer discount
-        async function updateDiscount(customerId) {
-            const discountInput = document.getElementById(`discount_${customerId}`);
-            const discount = parseFloat(discountInput.value);
+        // Update customer commission
+        async function updateCommission(customerId) {
+            const commissionInput = document.getElementById(`commission_${customerId}`);
+            const commission = parseFloat(commissionInput.value);
 
-            if (isNaN(discount) || discount < 0 || discount > 100) {
-                showAlert('❌ Invalid discount percentage (0-100)', 'error');
+            if (isNaN(commission) || commission < 0 || commission > 100) {
+                showAlert('❌ Porcentaje de comisión inválido (0-100)', 'error');
                 return;
             }
 
             try {
-                const response = await fetch(`${BASE_URL}/api/admin/update-discount`, {
+                const response = await fetch(`${BASE_URL}/api/admin/update-commission`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'x-admin-key': ADMIN_KEY
                     },
-                    body: JSON.stringify({ customer_id: customerId, discount_percentage: discount })
+                    body: JSON.stringify({ customer_id: customerId, commission_percentage: commission })
                 });
 
                 const data = await response.json();
 
                 if (data.success) {
-                    showAlert(`✅ Discount updated to ${discount}%`, 'success');
+                    showAlert(`✅ Comisión actualizada a ${commission}%`, 'success');
                     loadCustomers();
                 } else {
                     showAlert('❌ Failed: ' + data.error, 'error');
@@ -947,7 +947,7 @@
             const customerId = document.getElementById('invoiceCustomerId').value;
             const dateFrom = document.getElementById('invoiceDateFrom').value;
             const dateTo = document.getElementById('invoiceDateTo').value;
-            const discount = document.getElementById('invoiceDiscount').value;
+            const commission = document.getElementById('invoiceCommission').value;
             const notes = document.getElementById('invoiceNotes').value;
 
             if (!customerId || !dateFrom || !dateTo) {
@@ -955,9 +955,9 @@
                 return;
             }
 
-            // If discount is provided, update customer discount first
-            if (discount && parseFloat(discount) > 0) {
-                await updateDiscount(customerId);
+            // If commission is provided, update customer commission first
+            if (commission && parseFloat(commission) > 0) {
+                await updateCommission(customerId);
             }
 
             try {
@@ -1018,7 +1018,7 @@
                             <td>${inv.company_name || inv.customer_id}</td>
                             <td>${dateRange}</td>
                             <td>$${parseFloat(inv.subtotal).toFixed(2)}</td>
-                            <td>${parseFloat(inv.discount_percentage).toFixed(1)}% ($${parseFloat(inv.discount_amount).toFixed(2)})</td>
+                            <td>${parseFloat(inv.commission_percentage).toFixed(1)}% ($${parseFloat(inv.commission_amount).toFixed(2)})</td>
                             <td><strong>$${parseFloat(inv.total).toFixed(2)}</strong></td>
                             <td>${inv.transaction_count}</td>
                             <td>
@@ -1089,7 +1089,7 @@
 
                         <div style="text-align: right; margin-top: 20px; font-size: 1.1em;">
                             <p><strong>Subtotal:</strong> $${parseFloat(inv.subtotal).toFixed(2)}</p>
-                            <p style="color: #10b981;"><strong>Discount (${parseFloat(inv.discount_percentage).toFixed(1)}%):</strong> -$${parseFloat(inv.discount_amount).toFixed(2)}</p>
+                            <p style="color: #f59e0b;"><strong>Comisión (${parseFloat(inv.commission_percentage).toFixed(1)}%):</strong> +$${parseFloat(inv.discount_amount).toFixed(2)}</p>
                             <hr style="margin: 10px 0;">
                             <p style="font-size: 1.3em; color: #667eea;"><strong>TOTAL:</strong> $${parseFloat(inv.total).toFixed(2)}</p>
                         </div>
@@ -1114,15 +1114,15 @@
             }
         }
 
-        // Auto-populate discount when customer selected
+        // Auto-populate commission when customer selected
         document.addEventListener('DOMContentLoaded', () => {
             const invoiceSelect = document.getElementById('invoiceCustomerId');
             if (invoiceSelect) {
                 invoiceSelect.addEventListener('change', function() {
                     const selectedOption = this.options[this.selectedIndex];
-                    const discount = selectedOption.getAttribute('data-discount');
-                    if (discount) {
-                        document.getElementById('invoiceDiscount').value = discount;
+                    const commission = selectedOption.getAttribute('data-commission');
+                    if (commission) {
+                        document.getElementById('invoiceCommission').value = commission;
                     }
                 });
             }
