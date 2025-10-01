@@ -4,6 +4,7 @@ const latcomAPI = require('./latcom-api');
 const redisCache = require('./redis-cache');
 const queueProcessor = require('./queue-processor');
 const forexConverter = require('./forex-converter');
+const alertSystem = require('./alert-system');
 const path = require('path');
 
 const app = express();
@@ -432,8 +433,14 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
             );
             
             await client.query('COMMIT');
-            
+
             console.log(`✅ Transaction ${transactionId} successful. Balance: $${customer.current_balance} → $${newBalance} USD`);
+
+            // Reset failure counter on success
+            alertSystem.resetFailureCounter();
+
+            // Check for low balance alert
+            await alertSystem.checkLowBalance(customerId, customer.company_name || customerId, newBalance, 1000);
 
             res.json({
                 success: true,
@@ -466,6 +473,19 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
                  WHERE transaction_id = $5`,
                 ['FAILED', responseTime, 'FAILED', latcomResult.message, transactionId]
             );
+
+            // Track failure for consecutive failure alerts
+            const failedTx = {
+                transaction_id: transactionId,
+                customer_id: customerId,
+                phone: phone,
+                amount_mxn: amount,
+                amount: amount,
+                created_at: new Date().toISOString(),
+                latcom_response_message: latcomResult.message
+            };
+            await alertSystem.trackTransactionFailure(failedTx);
+
             await client.query('ROLLBACK');
             return res.status(500).json({
                 success: false,
@@ -1085,11 +1105,45 @@ app.get('/api/admin/metrics', async (req, res) => {
     }
 });
 
+// Test alert system (Admin only)
+app.post('/api/admin/test-alert', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    try {
+        const result = await alertSystem.testEmail();
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get alert system status (Admin only)
+app.get('/api/admin/alert-status', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    res.json({
+        success: true,
+        configured: alertSystem.isConfigured(),
+        alert_email: alertSystem.alertEmail || 'Not configured',
+        consecutive_failures: alertSystem.consecutiveFailures,
+        active_balance_alerts: Object.keys(alertSystem.lastBalanceAlerts).length
+    });
+});
+
 // Start server
 const PORT = process.env.PORT || 8080;
 
 console.log('🚀 Starting production server with Invoice & Monitoring System...');
 console.log('📡 Latcom API configured:', latcomAPI.isConfigured() ? 'YES' : 'NO');
+console.log('📧 Alert system configured:', alertSystem.isConfigured() ? 'YES' : 'NO');
 
 testDatabase().then(() => {
     initDatabase().then(() => {
