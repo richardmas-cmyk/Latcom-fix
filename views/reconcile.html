@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -253,44 +253,44 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔍 Portal de Conciliación</h1>
+        <h1>🔍 Reconciliation Portal</h1>
         <div class="subtitle">
-            Sistema de reconciliación y análisis de transacciones
+            Transaction reconciliation and analysis system
         </div>
 
         <!-- Controls -->
         <div class="controls">
-            <h2>Filtros de Búsqueda</h2>
+            <h2>Search Filters</h2>
             <div class="filter-grid">
                 <div class="filter-group">
-                    <label>Fecha Desde:</label>
+                    <label>Date From:</label>
                     <input type="date" id="dateFrom" value="">
                 </div>
                 <div class="filter-group">
-                    <label>Fecha Hasta:</label>
+                    <label>Date To:</label>
                     <input type="date" id="dateTo" value="">
                 </div>
                 <div class="filter-group">
-                    <label>Estado:</label>
+                    <label>Status:</label>
                     <select id="status">
-                        <option value="">Todos</option>
-                        <option value="SUCCESS">Exitosas</option>
-                        <option value="FAILED">Fallidas</option>
-                        <option value="PENDING">Pendientes</option>
+                        <option value="">All</option>
+                        <option value="SUCCESS">Successful</option>
+                        <option value="FAILED">Failed</option>
+                        <option value="PENDING">Pending</option>
                     </select>
                 </div>
             </div>
             <div class="button-group">
-                <button class="btn-primary" onclick="loadReconciliation()">🔍 Buscar Transacciones</button>
-                <button class="btn-success" onclick="loadDailySummary()">📊 Ver Resumen Diario</button>
-                <button class="btn-export" onclick="exportToCSV()">📥 Exportar a CSV</button>
+                <button class="btn-primary" onclick="loadReconciliation()">🔍 Search Transactions</button>
+                <button class="btn-success" onclick="loadDailySummary()">📊 View Daily Summary</button>
+                <button class="btn-export" onclick="exportToCSV()">📥 Export to CSV</button>
             </div>
         </div>
 
         <!-- Summary Cards -->
         <div class="summary-grid" id="summaryCards" style="display: none;">
             <div class="summary-card">
-                <div class="summary-label">Total Transacciones</div>
+                <div class="summary-label">Total Transactions</div>
                 <div class="summary-value" id="totalTx">0</div>
             </div>
             <div class="summary-card">
@@ -298,41 +298,41 @@
                 <div class="summary-value" id="totalMxn">$0</div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">Exitosas</div>
+                <div class="summary-label">Successful</div>
                 <div class="summary-value success" id="successCount">0</div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">Fallidas</div>
+                <div class="summary-label">Failed</div>
                 <div class="summary-value failed" id="failedCount">0</div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">Pendientes</div>
+                <div class="summary-label">Pending</div>
                 <div class="summary-value pending" id="pendingCount">0</div>
             </div>
         </div>
 
         <!-- Transactions Table -->
         <div class="section">
-            <h2 id="sectionTitle">📋 Transacciones</h2>
+            <h2 id="sectionTitle">📋 Transactions</h2>
             <div id="loadingDiv" class="loading" style="display: none;">
                 <div class="spinner"></div>
-                Cargando datos...
+                Loading data...
             </div>
             <div id="noDataDiv" class="no-data">
-                Selecciona un rango de fechas y presiona "Buscar Transacciones"
+                Select a date range and press "Search Transactions"
             </div>
             <table id="transactionsTable" style="display: none;">
                 <thead>
                     <tr>
-                        <th>Fecha/Hora</th>
+                        <th>Date/Time</th>
                         <th>TX ID</th>
-                        <th>Cliente</th>
-                        <th>Teléfono</th>
-                        <th>Monto MXN</th>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Amount MXN</th>
                         <th>Estado</th>
-                        <th>Tiempo Resp.</th>
-                        <th>Código Latcom</th>
-                        <th>Operador TX ID</th>
+                        <th>Response Time</th>
+                        <th>Latcom Code</th>
+                        <th>Operator TX ID</th>
                     </tr>
                 </thead>
                 <tbody id="transactionsBody">
@@ -343,7 +343,7 @@
 
     <script>
         const BASE_URL = window.location.origin;
-        const RECONCILE_KEY = prompt('Ingresa la clave de conciliación:');
+        const RECONCILE_KEY = prompt('Enter reconciliation key:');
 
         // Set default dates (last 30 days)
         const today = new Date();
@@ -359,7 +359,7 @@
             const status = document.getElementById('status').value;
 
             if (!dateFrom || !dateTo) {
-                alert('Por favor selecciona un rango de fechas');
+                alert('Please select a date range');
                 return;
             }
 
@@ -382,13 +382,13 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Error al cargar transacciones');
+                    throw new Error('Error loading transactions');
                 }
 
                 const data = await response.json();
 
                 if (!data.success) {
-                    throw new Error(data.error || 'Error desconocido');
+                    throw new Error(data.error || 'Unknown error');
                 }
 
                 // Update summary cards
@@ -423,7 +423,7 @@
                     }).join('');
 
                     document.getElementById('transactionsTable').style.display = 'table';
-                    document.getElementById('sectionTitle').textContent = `📋 Transacciones (${data.transactions.length})`;
+                    document.getElementById('sectionTitle').textContent = `📋 Transactions (${data.transactions.length})`;
                 } else {
                     document.getElementById('noDataDiv').innerHTML = 'No se encontraron transacciones en este rango';
                     document.getElementById('noDataDiv').style.display = 'block';
@@ -445,7 +445,7 @@
             const dateTo = document.getElementById('dateTo').value;
 
             if (!dateFrom || !dateTo) {
-                alert('Por favor selecciona un rango de fechas');
+                alert('Please select a date range');
                 return;
             }
 
@@ -465,13 +465,13 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Error al cargar resumen');
+                    throw new Error('Error loading summary');
                 }
 
                 const data = await response.json();
 
                 if (!data.success) {
-                    throw new Error(data.error || 'Error desconocido');
+                    throw new Error(data.error || 'Unknown error');
                 }
 
                 // Update table with daily summary
@@ -479,12 +479,12 @@
                 const thead = document.querySelector('#transactionsTable thead tr');
 
                 thead.innerHTML = `
-                    <th>Fecha</th>
+                    <th>Date</th>
                     <th>Total TX</th>
-                    <th>Exitosas</th>
-                    <th>Fallidas</th>
+                    <th>Successful</th>
+                    <th>Failed</th>
                     <th>Total MXN</th>
-                    <th>Tiempo Resp. Prom.</th>
+                    <th>Response Time Prom.</th>
                 `;
 
                 if (data.daily_summary && data.daily_summary.length > 0) {
@@ -503,7 +503,7 @@
                     }).join('');
 
                     document.getElementById('transactionsTable').style.display = 'table';
-                    document.getElementById('sectionTitle').textContent = `📊 Resumen Diario (${data.daily_summary.length} días)`;
+                    document.getElementById('sectionTitle').textContent = `📊 Daily Summary (${data.daily_summary.length} days)`;
                 } else {
                     document.getElementById('noDataDiv').innerHTML = 'No se encontraron datos en este rango';
                     document.getElementById('noDataDiv').style.display = 'block';
@@ -516,7 +516,7 @@
                 document.getElementById('loadingDiv').style.display = 'none';
                 document.getElementById('noDataDiv').innerHTML = `Error: ${error.message}`;
                 document.getElementById('noDataDiv').style.display = 'block';
-                alert('Error al cargar resumen: ' + error.message);
+                alert('Error loading summary: ' + error.message);
             }
         }
 
@@ -525,7 +525,7 @@
             const dateTo = document.getElementById('dateTo').value;
 
             if (!dateFrom || !dateTo) {
-                alert('Por favor selecciona un rango de fechas');
+                alert('Please select a date range');
                 return;
             }
 
@@ -540,7 +540,7 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Error al exportar datos');
+                    throw new Error('Error exporting data');
                 }
 
                 // Convert response to blob and download
@@ -556,7 +556,7 @@
 
             } catch (error) {
                 console.error('Error:', error);
-                alert('Error al exportar: ' + error.message);
+                alert('Export error: ' + error.message);
             }
         }
 
@@ -564,7 +564,7 @@
         if (RECONCILE_KEY) {
             // Initial view shows message
         } else {
-            document.getElementById('noDataDiv').innerHTML = 'Se requiere clave de conciliación';
+            document.getElementById('noDataDiv').innerHTML = 'Reconciliation key required';
         }
     </script>
 </body>
