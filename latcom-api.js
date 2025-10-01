@@ -165,6 +165,82 @@ class LatcomAPI {
     }
 
     /**
+     * Phone number lookup - identify carrier
+     */
+    async lookupPhone(phoneNumber) {
+        try {
+            await this.ensureAuthenticated();
+
+            console.log(`🔍 Looking up phone number: ${phoneNumber}`);
+
+            // Latcom doesn't have a dedicated lookup endpoint
+            // We'll return basic info based on phone pattern
+            const cleanPhone = phoneNumber.replace(/^\+?52/, '');
+
+            // Mexican phone number patterns (basic detection)
+            let carrier = 'Unknown';
+            if (cleanPhone.startsWith('55') || cleanPhone.startsWith('56')) {
+                carrier = 'TELEFONICA (Movistar)';
+            } else if (cleanPhone.startsWith('33')) {
+                carrier = 'TELCEL';
+            } else if (cleanPhone.startsWith('81')) {
+                carrier = 'AT&T / TELCEL (Monterrey)';
+            }
+
+            return {
+                success: true,
+                phone: cleanPhone,
+                formatted: '+52' + cleanPhone,
+                carrier: carrier,
+                country: 'Mexico',
+                valid: cleanPhone.length === 10,
+                note: 'Carrier detection based on area code pattern'
+            };
+
+        } catch (error) {
+            console.error('❌ Phone lookup error:', error.message);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Get transaction status from Latcom
+     */
+    async getTransactionStatus(operatorTransactionId) {
+        try {
+            await this.ensureAuthenticated();
+
+            console.log(`📊 Checking transaction status: ${operatorTransactionId}`);
+
+            const response = await axios.get(
+                `${this.baseUrl}/api/transaction/${operatorTransactionId}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${this.accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 10000
+                }
+            );
+
+            return {
+                success: true,
+                status: response.data
+            };
+
+        } catch (error) {
+            console.error('❌ Transaction status error:', error.message);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
      * Check if Latcom API is configured
      */
     isConfigured() {

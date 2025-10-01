@@ -560,6 +560,84 @@ app.post('/api/admin/add-credit', async (req, res) => {
     }
 });
 
+// Phone number lookup (Admin only)
+app.post('/api/admin/lookup-phone', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    const { phone } = req.body;
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!phone) {
+        return res.status(400).json({ success: false, error: 'Phone number required' });
+    }
+
+    try {
+        const result = await latcomAPI.lookupPhone(phone);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get transaction details with full log (Admin only)
+app.get('/api/admin/transaction/:transactionId', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    const { transactionId } = req.params;
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not available' });
+    }
+
+    try {
+        // Get transaction from database
+        const txnResult = await pool.query(
+            'SELECT * FROM transactions WHERE transaction_id = $1',
+            [transactionId]
+        );
+
+        if (txnResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Transaction not found' });
+        }
+
+        const transaction = txnResult.rows[0];
+
+        // Get billing record
+        const billingResult = await pool.query(
+            'SELECT * FROM billing_records WHERE transaction_id = $1',
+            [transactionId]
+        );
+
+        // Try to get Latcom status if we have operator transaction ID
+        let latcomStatus = null;
+        if (transaction.operator_transaction_id) {
+            latcomStatus = await latcomAPI.getTransactionStatus(transaction.operator_transaction_id);
+        }
+
+        res.json({
+            success: true,
+            transaction: transaction,
+            billing: billingResult.rows[0] || null,
+            latcom_status: latcomStatus,
+            logs: {
+                created_at: transaction.created_at,
+                processed_at: transaction.processed_at,
+                status_history: [
+                    { timestamp: transaction.created_at, status: 'PENDING', note: 'Transaction initiated' },
+                    transaction.processed_at ? { timestamp: transaction.processed_at, status: transaction.status, note: 'Processed by Latcom' } : null
+                ].filter(Boolean)
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Dashboard route
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'dashboard.html'));
