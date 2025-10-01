@@ -247,11 +247,12 @@
 
                 const metrics = data.metrics;
 
-                // Update average response time
+                // Update average response time (convert ms to seconds)
                 const avgTime = metrics.average_response_time_ms;
                 const avgEl = document.getElementById('avgResponseTime');
                 if (avgTime) {
-                    avgEl.textContent = avgTime + 'ms';
+                    const avgSeconds = (avgTime / 1000).toFixed(2);
+                    avgEl.textContent = avgSeconds + 's';
                     avgEl.className = 'metric-value ' + (avgTime < 2000 ? 'good' : avgTime < 5000 ? 'warning' : 'bad');
                 } else {
                     avgEl.textContent = 'N/A';
@@ -270,27 +271,30 @@
                 // Update total today
                 document.getElementById('totalToday').textContent = metrics.transactions_last_24h;
 
-                // Update min/max times
+                // Update min/max times (convert ms to seconds)
                 const minEl = document.getElementById('minResponseTime');
                 if (metrics.min_response_time_ms) {
-                    minEl.textContent = metrics.min_response_time_ms + 'ms';
+                    const minSeconds = (metrics.min_response_time_ms / 1000).toFixed(2);
+                    minEl.textContent = minSeconds + 's';
                 } else {
                     minEl.textContent = 'N/A';
                 }
 
                 const maxEl = document.getElementById('maxResponseTime');
                 if (metrics.max_response_time_ms) {
-                    maxEl.textContent = metrics.max_response_time_ms + 'ms';
+                    const maxSeconds = (metrics.max_response_time_ms / 1000).toFixed(2);
+                    maxEl.textContent = maxSeconds + 's';
                     maxEl.className = 'metric-value ' + (metrics.max_response_time_ms < 5000 ? 'good' : 'warning');
                 } else {
                     maxEl.textContent = 'N/A';
                 }
 
-                // Update recent transactions
+                // Update recent transactions (convert ms to seconds)
                 const tbody = document.getElementById('recentTransactions');
                 if (metrics.recent_transactions && metrics.recent_transactions.length > 0) {
                     tbody.innerHTML = metrics.recent_transactions.map(tx => {
                         const responseTime = tx.response_time_ms;
+                        const responseSeconds = (responseTime / 1000).toFixed(2);
                         const timeClass = responseTime < 2000 ? 'fast' : responseTime < 5000 ? 'medium' : 'slow';
                         const statusClass = tx.status === 'SUCCESS' ? 'status-success' : tx.status === 'FAILED' ? 'status-failed' : 'status-pending';
 
@@ -301,7 +305,7 @@
                                 <td>${tx.phone}</td>
                                 <td>${tx.amount_mxn || 'N/A'} MXN</td>
                                 <td class="${statusClass}">${tx.status}</td>
-                                <td class="response-time ${timeClass}">${responseTime}ms</td>
+                                <td class="response-time ${timeClass}">${responseSeconds}s</td>
                                 <td>${tx.latcom_response_code || 'N/A'}</td>
                             </tr>
                         `;
