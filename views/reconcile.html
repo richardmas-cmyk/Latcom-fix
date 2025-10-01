@@ -271,13 +271,6 @@
                     <input type="date" id="dateTo" value="">
                 </div>
                 <div class="filter-group">
-                    <label>Cliente:</label>
-                    <select id="customerId">
-                        <option value="">Todos los clientes</option>
-                        <option value="ENVIADESPENSA_001">EnviaDespensa</option>
-                    </select>
-                </div>
-                <div class="filter-group">
                     <label>Estado:</label>
                     <select id="status">
                         <option value="">Todos</option>
@@ -303,10 +296,6 @@
             <div class="summary-card">
                 <div class="summary-label">Total MXN</div>
                 <div class="summary-value" id="totalMxn">$0</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-label">Total USD</div>
-                <div class="summary-value" id="totalUsd">$0</div>
             </div>
             <div class="summary-card">
                 <div class="summary-label">Exitosas</div>
@@ -340,8 +329,6 @@
                         <th>Cliente</th>
                         <th>Teléfono</th>
                         <th>Monto MXN</th>
-                        <th>Monto USD</th>
-                        <th>Forex</th>
                         <th>Estado</th>
                         <th>Tiempo Resp.</th>
                         <th>Código Latcom</th>
@@ -356,7 +343,7 @@
 
     <script>
         const BASE_URL = window.location.origin;
-        const ADMIN_KEY = prompt('Ingresa la clave de administrador:');
+        const RECONCILE_KEY = prompt('Ingresa la clave de conciliación:');
 
         // Set default dates (last 30 days)
         const today = new Date();
@@ -369,7 +356,6 @@
         async function loadReconciliation() {
             const dateFrom = document.getElementById('dateFrom').value;
             const dateTo = document.getElementById('dateTo').value;
-            const customerId = document.getElementById('customerId').value;
             const status = document.getElementById('status').value;
 
             if (!dateFrom || !dateTo) {
@@ -389,11 +375,10 @@
                     date_to: dateTo + 'T23:59:59Z'
                 });
 
-                if (customerId) params.append('customer_id', customerId);
                 if (status) params.append('status', status);
 
                 const response = await fetch(`${BASE_URL}/api/admin/reconcile?${params}`, {
-                    headers: { 'x-admin-key': ADMIN_KEY }
+                    headers: { 'x-reconcile-key': RECONCILE_KEY }
                 });
 
                 if (!response.ok) {
@@ -408,8 +393,7 @@
 
                 // Update summary cards
                 document.getElementById('totalTx').textContent = data.summary.total_transactions;
-                document.getElementById('totalMxn').textContent = '$' + data.summary.total_mxn.toFixed(2);
-                document.getElementById('totalUsd').textContent = '$' + data.summary.total_usd.toFixed(2);
+                document.getElementById('totalMxn').textContent = '$' + data.summary.total_mxn.toFixed(2) + ' MXN';
                 document.getElementById('successCount').textContent = data.summary.success_count;
                 document.getElementById('failedCount').textContent = data.summary.failed_count;
                 document.getElementById('pendingCount').textContent = data.summary.pending_count;
@@ -429,9 +413,7 @@
                                 <td style="font-size: 0.8em;">${tx.transaction_id}</td>
                                 <td>${tx.company_name || tx.customer_id}</td>
                                 <td>${tx.phone}</td>
-                                <td>$${parseFloat(tx.amount_mxn || 0).toFixed(2)}</td>
-                                <td>$${parseFloat(tx.amount_usd || 0).toFixed(2)}</td>
-                                <td>${parseFloat(tx.forex_rate || 0).toFixed(4)}</td>
+                                <td>$${parseFloat(tx.amount_mxn || 0).toFixed(2)} MXN</td>
                                 <td class="${statusClass}">${tx.status}</td>
                                 <td>${responseTime}</td>
                                 <td>${tx.latcom_response_code || 'N/A'}</td>
@@ -479,7 +461,7 @@
                 });
 
                 const response = await fetch(`${BASE_URL}/api/admin/reconcile/summary?${params}`, {
-                    headers: { 'x-admin-key': ADMIN_KEY }
+                    headers: { 'x-reconcile-key': RECONCILE_KEY }
                 });
 
                 if (!response.ok) {
@@ -502,7 +484,6 @@
                     <th>Exitosas</th>
                     <th>Fallidas</th>
                     <th>Total MXN</th>
-                    <th>Total USD</th>
                     <th>Tiempo Resp. Prom.</th>
                 `;
 
@@ -515,8 +496,7 @@
                                 <td>${day.total_transactions}</td>
                                 <td class="status-success">${day.success_count}</td>
                                 <td class="status-failed">${day.failed_count}</td>
-                                <td>$${parseFloat(day.total_mxn || 0).toFixed(2)}</td>
-                                <td>$${parseFloat(day.total_usd || 0).toFixed(2)}</td>
+                                <td>$${parseFloat(day.total_mxn || 0).toFixed(2)} MXN</td>
                                 <td>${avgTime}</td>
                             </tr>
                         `;
@@ -543,7 +523,6 @@
         async function exportToCSV() {
             const dateFrom = document.getElementById('dateFrom').value;
             const dateTo = document.getElementById('dateTo').value;
-            const customerId = document.getElementById('customerId').value;
 
             if (!dateFrom || !dateTo) {
                 alert('Por favor selecciona un rango de fechas');
@@ -555,19 +534,17 @@
                 date_to: dateTo + 'T23:59:59Z'
             });
 
-            if (customerId) params.append('customer_id', customerId);
-
-            const url = `${BASE_URL}/api/admin/reconcile/export?${params}&x-admin-key=${ADMIN_KEY}`;
+            const url = `${BASE_URL}/api/admin/reconcile/export?${params}&x-reconcile-key=${RECONCILE_KEY}`;
 
             // Open in new window to download
             window.open(url, '_blank');
         }
 
-        // Auto-load on startup if admin key is provided
-        if (ADMIN_KEY) {
+        // Auto-load on startup if reconcile key is provided
+        if (RECONCILE_KEY) {
             // Initial view shows message
         } else {
-            document.getElementById('noDataDiv').innerHTML = 'Se requiere acceso de administrador';
+            document.getElementById('noDataDiv').innerHTML = 'Se requiere clave de conciliación';
         }
     </script>
 </body>
