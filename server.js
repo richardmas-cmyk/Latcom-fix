@@ -49,6 +49,17 @@ async function initDatabase() {
             console.log('⚠️  Migration note:', migrationError.message);
         }
 
+        // Migrate customers table to add discount field
+        try {
+            await pool.query(`
+                ALTER TABLE customers
+                ADD COLUMN IF NOT EXISTS discount_percentage DECIMAL(5,2) DEFAULT 0.00
+            `);
+            console.log('✅ Database migration: Added discount_percentage to customers table');
+        } catch (migrationError) {
+            console.log('⚠️  Migration note:', migrationError.message);
+        }
+
         // Create tables
         await pool.query(`
             CREATE TABLE IF NOT EXISTS customers (
@@ -96,7 +107,37 @@ async function initDatabase() {
                 created_at TIMESTAMP DEFAULT NOW()
             )
         `);
-        
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS invoices (
+                id SERIAL PRIMARY KEY,
+                invoice_number VARCHAR(50) UNIQUE NOT NULL,
+                customer_id VARCHAR(50),
+                date_from TIMESTAMP,
+                date_to TIMESTAMP,
+                subtotal DECIMAL(10,2),
+                discount_percentage DECIMAL(5,2),
+                discount_amount DECIMAL(10,2),
+                total DECIMAL(10,2),
+                transaction_count INTEGER,
+                status VARCHAR(20) DEFAULT 'DRAFT',
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                generated_by VARCHAR(50)
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS invoice_items (
+                id SERIAL PRIMARY KEY,
+                invoice_number VARCHAR(50),
+                transaction_id VARCHAR(50),
+                description TEXT,
+                amount DECIMAL(10,2),
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+
         // Check/Create EnviaDespensa customer
         const exists = await pool.query(
             'SELECT * FROM customers WHERE customer_id = $1',
@@ -729,6 +770,205 @@ app.get('/api/admin/all-transactions', async (req, res) => {
             'SELECT * FROM transactions ORDER BY created_at DESC LIMIT 1000'
         );
         res.json({ success: true, transactions: result.rows });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update customer discount (Admin only)
+app.post('/api/admin/update-discount', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    const { customer_id, discount_percentage } = req.body;
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not connected' });
+    }
+
+    try {
+        await pool.query(
+            'UPDATE customers SET discount_percentage = $1 WHERE customer_id = $2',
+            [discount_percentage, customer_id]
+        );
+
+        res.json({ success: true, message: 'Discount updated successfully' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Generate invoice (Admin only)
+app.post('/api/admin/generate-invoice', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    const { customer_id, date_from, date_to, notes } = req.body;
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not connected' });
+    }
+
+    try {
+        // Get customer discount
+        const customerResult = await pool.query(
+            'SELECT discount_percentage, company_name FROM customers WHERE customer_id = $1',
+            [customer_id]
+        );
+
+        if (customerResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Customer not found' });
+        }
+
+        const customer = customerResult.rows[0];
+        const discountPercentage = parseFloat(customer.discount_percentage) || 0;
+
+        // Get transactions in date range
+        const txResult = await pool.query(
+            `SELECT * FROM transactions
+             WHERE customer_id = $1
+             AND created_at >= $2
+             AND created_at <= $3
+             AND status = 'SUCCESS'
+             ORDER BY created_at ASC`,
+            [customer_id, date_from, date_to]
+        );
+
+        const transactions = txResult.rows;
+
+        if (transactions.length === 0) {
+            return res.status(400).json({
+                success: false,
+                error: 'No successful transactions found in date range'
+            });
+        }
+
+        // Calculate subtotal (sum of all USD amounts)
+        const subtotal = transactions.reduce((sum, tx) => {
+            const amount = tx.amount_usd ? parseFloat(tx.amount_usd) : parseFloat(tx.amount);
+            return sum + amount;
+        }, 0);
+
+        // Calculate discount
+        const discountAmount = (subtotal * discountPercentage) / 100;
+        const total = subtotal - discountAmount;
+
+        // Generate invoice number
+        const invoiceNumber = `INV-${customer_id}-${Date.now()}`;
+
+        // Insert invoice
+        await pool.query(
+            `INSERT INTO invoices
+            (invoice_number, customer_id, date_from, date_to, subtotal,
+             discount_percentage, discount_amount, total, transaction_count,
+             status, notes, generated_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+            [
+                invoiceNumber, customer_id, date_from, date_to, subtotal.toFixed(2),
+                discountPercentage, discountAmount.toFixed(2), total.toFixed(2),
+                transactions.length, 'GENERATED', notes || '', 'ADMIN'
+            ]
+        );
+
+        // Insert invoice items
+        for (const tx of transactions) {
+            const amount = tx.amount_usd ? parseFloat(tx.amount_usd) : parseFloat(tx.amount);
+            const description = `Top-up ${tx.phone} - ${tx.amount_mxn || tx.amount} MXN`;
+
+            await pool.query(
+                `INSERT INTO invoice_items
+                (invoice_number, transaction_id, description, amount)
+                VALUES ($1, $2, $3, $4)`,
+                [invoiceNumber, tx.transaction_id, description, amount.toFixed(2)]
+            );
+        }
+
+        res.json({
+            success: true,
+            invoice_number: invoiceNumber,
+            customer_name: customer.company_name,
+            date_from,
+            date_to,
+            subtotal: subtotal.toFixed(2),
+            discount_percentage: discountPercentage,
+            discount_amount: discountAmount.toFixed(2),
+            total: total.toFixed(2),
+            transaction_count: transactions.length
+        });
+
+    } catch (error) {
+        console.error('❌ Invoice generation error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get all invoices (Admin only)
+app.get('/api/admin/invoices', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.json({ success: true, invoices: [] });
+    }
+
+    try {
+        const result = await pool.query(
+            `SELECT i.*, c.company_name
+             FROM invoices i
+             LEFT JOIN customers c ON i.customer_id = c.customer_id
+             ORDER BY i.created_at DESC`
+        );
+        res.json({ success: true, invoices: result.rows });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get invoice details (Admin only)
+app.get('/api/admin/invoice/:invoiceNumber', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    const { invoiceNumber } = req.params;
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.status(404).json({ success: false, error: 'Database not connected' });
+    }
+
+    try {
+        // Get invoice
+        const invoiceResult = await pool.query(
+            `SELECT i.*, c.company_name, c.discount_percentage as customer_discount
+             FROM invoices i
+             LEFT JOIN customers c ON i.customer_id = c.customer_id
+             WHERE i.invoice_number = $1`,
+            [invoiceNumber]
+        );
+
+        if (invoiceResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Invoice not found' });
+        }
+
+        // Get invoice items
+        const itemsResult = await pool.query(
+            'SELECT * FROM invoice_items WHERE invoice_number = $1 ORDER BY created_at ASC',
+            [invoiceNumber]
+        );
+
+        res.json({
+            success: true,
+            invoice: invoiceResult.rows[0],
+            items: itemsResult.rows
+        });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
