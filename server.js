@@ -33,8 +33,22 @@ async function testDatabase() {
 // Initialize database tables
 async function initDatabase() {
     if (!dbConnected) return;
-    
+
     try {
+        // Migrate existing transactions table to add forex columns
+        try {
+            await pool.query(`
+                ALTER TABLE transactions
+                ADD COLUMN IF NOT EXISTS amount_mxn DECIMAL(10,2),
+                ADD COLUMN IF NOT EXISTS amount_usd DECIMAL(10,4),
+                ADD COLUMN IF NOT EXISTS exchange_rate DECIMAL(10,6),
+                ADD COLUMN IF NOT EXISTS currency VARCHAR(10) DEFAULT 'MXN'
+            `);
+            console.log('✅ Database migration: Added forex columns to transactions table');
+        } catch (migrationError) {
+            console.log('⚠️  Migration note:', migrationError.message);
+        }
+
         // Create tables
         await pool.query(`
             CREATE TABLE IF NOT EXISTS customers (
