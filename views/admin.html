@@ -345,16 +345,40 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="filterDate">Date</label>
-                    <input type="date" id="filterDate">
+                    <label for="filterDateFrom">Date From</label>
+                    <input type="date" id="filterDateFrom">
                 </div>
                 <div class="form-group">
-                    <label>&nbsp;</label>
-                    <button onclick="filterTransactions()">Filter</button>
+                    <label for="filterDateTo">Date To</label>
+                    <input type="date" id="filterDateTo">
                 </div>
             </div>
 
-            <button class="export-btn" onclick="exportToCSV()">📥 Export to CSV</button>
+            <div class="filters" style="margin-top: 15px;">
+                <div class="form-group">
+                    <label for="filterAmountMin">Amount Min (USD)</label>
+                    <input type="number" id="filterAmountMin" placeholder="0.00" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="filterAmountMax">Amount Max (USD)</label>
+                    <input type="number" id="filterAmountMax" placeholder="1000.00" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button onclick="filterTransactions()">🔍 Apply Filters</button>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button onclick="clearFilters()" style="background: #6b7280;">🔄 Clear Filters</button>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                <button class="export-btn" onclick="exportToCSV('all')">📥 Export All</button>
+                <button class="export-btn" onclick="exportToCSV('filtered')">📥 Export Filtered</button>
+                <button class="export-btn" onclick="exportToCSV('success')" style="background: #10b981;">📥 Export Success Only</button>
+                <button class="export-btn" onclick="exportToCSV('failed')" style="background: #ef4444;">📥 Export Failed Only</button>
+            </div>
 
             <table class="transaction-table">
                 <thead>
@@ -530,17 +554,51 @@
         function filterTransactions() {
             const customer = document.getElementById('filterCustomer').value;
             const status = document.getElementById('filterStatus').value;
-            const date = document.getElementById('filterDate').value;
+            const dateFrom = document.getElementById('filterDateFrom').value;
+            const dateTo = document.getElementById('filterDateTo').value;
+            const amountMin = document.getElementById('filterAmountMin').value;
+            const amountMax = document.getElementById('filterAmountMax').value;
 
             filteredTransactions = allTransactions.filter(t => {
+                // Customer filter
                 if (customer && t.customer_id !== customer) return false;
+
+                // Status filter
                 if (status && t.status !== status) return false;
-                if (date && !t.created_at.startsWith(date)) return false;
+
+                // Date range filter
+                const txDate = new Date(t.created_at).toISOString().split('T')[0];
+                if (dateFrom && txDate < dateFrom) return false;
+                if (dateTo && txDate > dateTo) return false;
+
+                // Amount range filter (USD)
+                const txAmount = t.amount_usd ? parseFloat(t.amount_usd) : parseFloat(t.amount || 0);
+                if (amountMin && txAmount < parseFloat(amountMin)) return false;
+                if (amountMax && txAmount > parseFloat(amountMax)) return false;
+
                 return true;
             });
 
             currentPage = 1;
             renderTransactions();
+
+            // Show filter count
+            showAlert(`✅ Found ${filteredTransactions.length} transactions`, 'success');
+        }
+
+        function clearFilters() {
+            document.getElementById('filterCustomer').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterDateFrom').value = '';
+            document.getElementById('filterDateTo').value = '';
+            document.getElementById('filterAmountMin').value = '';
+            document.getElementById('filterAmountMax').value = '';
+
+            filteredTransactions = allTransactions;
+            currentPage = 1;
+            renderTransactions();
+
+            showAlert('✅ Filters cleared', 'success');
         }
 
         function previousPage() {
@@ -591,28 +649,66 @@
             }
         }
 
-        function exportToCSV() {
-            const csv = ['Date,Customer,Phone,Amount,Status,Transaction ID'];
+        function exportToCSV(mode = 'filtered') {
+            let transactionsToExport = [];
 
-            filteredTransactions.forEach(t => {
+            // Determine which transactions to export
+            switch(mode) {
+                case 'all':
+                    transactionsToExport = allTransactions;
+                    break;
+                case 'filtered':
+                    transactionsToExport = filteredTransactions;
+                    break;
+                case 'success':
+                    transactionsToExport = allTransactions.filter(t => t.status === 'SUCCESS');
+                    break;
+                case 'failed':
+                    transactionsToExport = allTransactions.filter(t => t.status === 'FAILED');
+                    break;
+                default:
+                    transactionsToExport = filteredTransactions;
+            }
+
+            if (transactionsToExport.length === 0) {
+                showAlert('⚠️ No transactions to export', 'error');
+                return;
+            }
+
+            // CSV header with all important fields
+            const csv = ['Date,Customer,Phone,Amount (MXN),Cost (USD),Exchange Rate,Status,Transaction ID,Reference,Operator TX ID'];
+
+            transactionsToExport.forEach(t => {
+                const amountMXN = t.amount_mxn ? parseFloat(t.amount_mxn).toFixed(2) : parseFloat(t.amount || 0).toFixed(2);
+                const amountUSD = t.amount_usd ? parseFloat(t.amount_usd).toFixed(4) : parseFloat(t.amount || 0).toFixed(2);
+                const exchangeRate = t.exchange_rate ? parseFloat(t.exchange_rate).toFixed(6) : 'N/A';
+
                 csv.push([
                     new Date(t.created_at).toLocaleString(),
                     t.customer_id,
                     t.phone,
-                    parseFloat(t.amount).toFixed(2),
+                    amountMXN,
+                    amountUSD,
+                    exchangeRate,
                     t.status,
-                    t.transaction_id
-                ].join(','));
+                    t.transaction_id,
+                    t.reference || 'N/A',
+                    t.operator_transaction_id || 'N/A'
+                ].map(field => `"${field}"`).join(','));
             });
 
             const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`;
+
+            // Filename based on export mode
+            const dateStr = new Date().toISOString().split('T')[0];
+            const modeLabel = mode.charAt(0).toUpperCase() + mode.slice(1);
+            a.download = `relier_transactions_${mode}_${dateStr}.csv`;
             a.click();
 
-            showAlert('✅ CSV exported successfully!', 'success');
+            showAlert(`✅ Exported ${transactionsToExport.length} transactions (${modeLabel})!`, 'success');
         }
 
         function showAlert(message, type) {
