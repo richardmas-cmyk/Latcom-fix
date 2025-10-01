@@ -1088,7 +1088,7 @@ app.get('/api/admin/metrics', async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 8080;
 
-console.log('🚀 Starting production server with Invoice System...');
+console.log('🚀 Starting production server with Invoice & Monitoring System...');
 console.log('📡 Latcom API configured:', latcomAPI.isConfigured() ? 'YES' : 'NO');
 
 testDatabase().then(() => {
