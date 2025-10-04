@@ -317,6 +317,90 @@ class LatcomAPI {
     }
 
     /**
+     * Test a product with a phone number
+     * @param {string} phone - Phone number to test
+     * @param {object} product - Product object from catalog
+     */
+    async testProduct(phone, product) {
+        if (!this.baseUrl || !this.username || !this.password) {
+            throw new Error('Latcom API not configured');
+        }
+
+        // Ensure we're authenticated
+        const authenticated = await this.ensureAuthenticated();
+        if (!authenticated) {
+            throw new Error('Failed to authenticate with Latcom');
+        }
+
+        try {
+            // Strip country code 52 if present
+            let cleanPhone = phone.replace(/^\\+?52/, '');
+
+            console.log(`📞 Testing product ${product.productId} for ${cleanPhone}...`);
+
+            const requestBody = {
+                targetMSISDN: cleanPhone,
+                dist_transid: 'TEST_' + Date.now(),
+                operator: "TELEFONICA",
+                country: "MEXICO",
+                currency: product.currency,
+                amount: product.amount,
+                productId: product.productId,
+                skuID: product.skuId,
+                service: product.service
+            };
+
+            console.log('📤 Test request:', requestBody);
+
+            const response = await axios.post(
+                `${this.baseUrl}/api/tn/fast`,
+                requestBody,
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.accessToken}`
+                    },
+                    timeout: 30000
+                }
+            );
+
+            console.log('✅ Test response:', JSON.stringify(response.data));
+
+            if (response.data && (response.data.status === 'Success' || response.data.status === 'SUCCESS')) {
+                return {
+                    success: true,
+                    productId: product.productId,
+                    operatorTransactionId: response.data.transId || response.data.venTransid,
+                    message: response.data.responseMessage || 'Test successful',
+                    data: response.data
+                };
+            } else {
+                return {
+                    success: false,
+                    productId: product.productId,
+                    message: response.data.vendorResponseMsg || response.data.responseMessage || 'Test failed',
+                    data: response.data
+                };
+            }
+
+        } catch (error) {
+            console.error('❌ Test product error:', error.message);
+
+            if (error.response) {
+                console.error('❌ Response:', JSON.stringify(error.response.data));
+                return {
+                    success: false,
+                    productId: product.productId,
+                    message: error.response.data?.vendorResponseMsg || error.response.data?.message || 'API error',
+                    error: error.response.data
+                };
+            } else {
+                throw error;
+            }
+        }
+    }
+
+    /**
      * Check if Latcom API is configured
      */
     isConfigured() {

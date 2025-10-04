@@ -1441,34 +1441,44 @@ app.get('/api/admin/reconcile/export', async (req, res) => {
 // LATCOM PRODUCT CATALOG ENDPOINTS
 // ==========================================
 
-// Get Latcom products
-app.get('/api/admin/latcom/products', async (req, res) => {
+const { getAllProducts, getProductById } = require('./products');
+
+// Get all available products
+app.get('/api/admin/products', (req, res) => {
     const adminKey = req.headers['x-admin-key'];
     if (adminKey !== process.env.ADMIN_KEY) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
     try {
-        const result = await latcomAPI.getProducts();
-        res.json(result);
+        const products = getAllProducts();
+        res.json({ success: true, products });
     } catch (error) {
         console.error('Get products error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// Get Latcom catalog
-app.get('/api/admin/latcom/catalog', async (req, res) => {
+// Test a specific product
+app.post('/api/admin/test-product', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
     if (adminKey !== process.env.ADMIN_KEY) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
+    const { productId, phone } = req.body;
+
     try {
-        const result = await latcomAPI.getCatalog();
+        const product = getProductById(productId);
+        if (!product) {
+            return res.status(400).json({ success: false, error: 'Product not found' });
+        }
+
+        // Use latcom-api to test the product
+        const result = await latcomAPI.testProduct(phone, product);
         res.json(result);
     } catch (error) {
-        console.error('Get catalog error:', error);
+        console.error('Test product error:', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });
