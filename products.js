@@ -1,10 +1,10 @@
 /**
  * Latcom Product Catalog
- * Complete list of available products for Telefónica México
+ * Updated with products from official list (products.xlsx)
  */
 
 const LATCOM_PRODUCTS = {
-    // Bundles (Service 1)
+    // Bundles (Service 1) - Data plans with specific SKUs
     bundles: [
         {
             productId: "TEMXN_BFRISEM_7_DAYS",
@@ -13,7 +13,7 @@ const LATCOM_PRODUCTS = {
             currency: "USD",
             service: 1,
             price_usd: 7.5,
-            description: "2.3GB; 1.15GB YyTT; 30días; min y sms ilimitados a México, EUA y Canadá"
+            description: "2.3GB; 1.15GB YyTT; 7 días; min y sms ilimitados a México, EUA y Canadá"
         },
         {
             productId: "TEMXN_BFRIQUIN_28_DAYS",
@@ -22,7 +22,7 @@ const LATCOM_PRODUCTS = {
             currency: "USD",
             service: 1,
             price_usd: 11,
-            description: "3GB; 1.5GB YyTT; 30días; min y sms ilimitados a México, EUA y Canadá"
+            description: "3GB; 1.5GB YyTT; 28 días; min y sms ilimitados a México, EUA y Canadá"
         },
         {
             productId: "TEMXN_BFRIMEN_15_DAYS",
@@ -31,7 +31,7 @@ const LATCOM_PRODUCTS = {
             currency: "USD",
             service: 1,
             price_usd: 16.5,
-            description: "8GB; 2GB YyN; 30días; min y sms ilimitados a México, EUA y Canadá"
+            description: "8GB; 2GB YyN; 15 días; min y sms ilimitados a México, EUA y Canadá"
         },
         {
             productId: "TEMXN_BFRECINT_30_DAYS",
@@ -40,7 +40,7 @@ const LATCOM_PRODUCTS = {
             currency: "USD",
             service: 1,
             price_usd: 20,
-            description: "12GB; 3GB YyN; 30días"
+            description: "12GB; 3GB YyN; 30 días"
         },
         {
             productId: "TEMXN_BFSPRINT_UNLIMITED_30_DAYS",
@@ -49,23 +49,23 @@ const LATCOM_PRODUCTS = {
             currency: "USD",
             service: 1,
             price_usd: 22,
-            description: "Ilimitado GB; 30días; min y sms ilimitados a México, EUA y Canadá"
+            description: "Ilimitado GB; 30 días; min y sms ilimitados a México, EUA y Canadá"
         }
     ],
 
     // Open Range Topup (Service 2)
     openRange: {
-        productId: "TFE_MEXICO_TOPUP_103_2579_MXN",
+        productId: "TFE_MXN_20_TO_2000",
         skuId: "0",
-        currency: "USD",
+        currency: "MXN",
         service: 2,
-        min_amount: 0,
-        max_amount: 150,
-        description: "Tiempo aire en rango abierto de recarga (0-150 USD)"
+        min_amount: 20,
+        max_amount: 2000,
+        description: "Tiempo aire en rango abierto de recarga (20-2000 MXN)"
     },
 
-    // Fixed Amount Topups - MXN (Service 2)
-    fixedTopups: [
+    // Fixed Amount Topups - XOOM Products (Service 2, Currency: MXN)
+    xoomTopups: [
         { productId: "XOOM_10_MXN", skuId: "0", amount: 10, currency: "MXN", service: 2, description: "Tiempo aire 10 pesos" },
         { productId: "XOOM_20_MXN", skuId: "0", amount: 20, currency: "MXN", service: 2, description: "Tiempo aire 20 pesos" },
         { productId: "XOOM_30_MXN", skuId: "0", amount: 30, currency: "MXN", service: 2, description: "Tiempo aire 30 pesos" },
@@ -96,8 +96,8 @@ function getProductById(productId) {
         return LATCOM_PRODUCTS.openRange;
     }
 
-    // Check fixed topups
-    const topup = LATCOM_PRODUCTS.fixedTopups.find(p => p.productId === productId);
+    // Check XOOM topups
+    const topup = LATCOM_PRODUCTS.xoomTopups.find(p => p.productId === productId);
     if (topup) return topup;
 
     return null;
@@ -110,7 +110,7 @@ function getAllProducts() {
     return [
         ...LATCOM_PRODUCTS.bundles,
         LATCOM_PRODUCTS.openRange,
-        ...LATCOM_PRODUCTS.fixedTopups
+        ...LATCOM_PRODUCTS.xoomTopups
     ];
 }
 
