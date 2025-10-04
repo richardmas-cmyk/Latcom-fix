@@ -1437,6 +1437,42 @@ app.get('/api/admin/reconcile/export', async (req, res) => {
     }
 });
 
+// ==========================================
+// LATCOM PRODUCT CATALOG ENDPOINTS
+// ==========================================
+
+// Get Latcom products
+app.get('/api/admin/latcom/products', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    try {
+        const result = await latcomAPI.getProducts();
+        res.json(result);
+    } catch (error) {
+        console.error('Get products error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get Latcom catalog
+app.get('/api/admin/latcom/catalog', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    try {
+        const result = await latcomAPI.getCatalog();
+        res.json(result);
+    } catch (error) {
+        console.error('Get catalog error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Start server
 const PORT = process.env.PORT || 8080;
 
