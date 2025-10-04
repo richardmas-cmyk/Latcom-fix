@@ -241,6 +241,82 @@ class LatcomAPI {
     }
 
     /**
+     * Get available products/SKUs from Latcom
+     */
+    async getProducts() {
+        try {
+            await this.ensureAuthenticated();
+
+            console.log('📦 Fetching Latcom products...');
+
+            const response = await axios.get(
+                `${this.baseUrl}/api/products`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${this.accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 30000
+                }
+            );
+
+            return {
+                success: true,
+                products: response.data
+            };
+
+        } catch (error) {
+            console.error('❌ Get products error:', error.message);
+
+            if (error.response) {
+                console.error('Response:', JSON.stringify(error.response.data));
+            }
+
+            return {
+                success: false,
+                error: error.message,
+                response: error.response?.data
+            };
+        }
+    }
+
+    /**
+     * Get product catalog from Latcom
+     */
+    async getCatalog() {
+        try {
+            await this.ensureAuthenticated();
+
+            console.log('📋 Fetching Latcom catalog...');
+
+            const response = await axios.get(
+                `${this.baseUrl}/api/catalog`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${this.accessToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 30000
+                }
+            );
+
+            return {
+                success: true,
+                catalog: response.data
+            };
+
+        } catch (error) {
+            console.error('❌ Get catalog error:', error.message);
+
+            return {
+                success: false,
+                error: error.message,
+                response: error.response?.data
+            };
+        }
+    }
+
+    /**
      * Check if Latcom API is configured
      */
     isConfigured() {
