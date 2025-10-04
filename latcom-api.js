@@ -93,9 +93,27 @@ class LatcomAPI {
             // Strip country code 52 if present (Latcom expects 10-digit number only)
             let cleanPhone = phone.replace(/^\+?52/, '');
 
-            console.log(`📞 Calling Latcom API for ${cleanPhone} (original: ${phone}) with $${amount}...`);
+            console.log(`📞 Calling Latcom API for ${cleanPhone} (original: ${phone}) with ${amount} MXN...`);
 
-            // Latcom API format - open range 20-200 MXN
+            // Determine which product to use
+            let productId, productName;
+
+            // XOOM products for fixed amounts (10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 500)
+            const xoomAmounts = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 500];
+
+            if (xoomAmounts.includes(amount)) {
+                // Use XOOM product - amount must match product ID
+                productId = `XOOM_${String(amount).padStart(3, '0')}_MXN`;
+                productName = 'XOOM Fixed Topup';
+                console.log(`✅ Using XOOM product: ${productId} with amount ${amount} MXN`);
+            } else {
+                // Use open range product for non-standard amounts
+                productId = "TFE_MXN_20_TO_2000";
+                productName = 'Open Range Topup';
+                console.log(`✅ Using open range product: ${productId} with amount ${amount} MXN`);
+            }
+
+            // Latcom API request
             const requestBody = {
                 targetMSISDN: cleanPhone,
                 dist_transid: reference || 'RLR' + Date.now(),
@@ -103,7 +121,7 @@ class LatcomAPI {
                 country: "MEXICO",
                 currency: "MXN",
                 amount: amount,
-                productId: "TFE_MXN_20_TO_2000",
+                productId: productId,
                 skuID: "0",
                 service: 2
             };
