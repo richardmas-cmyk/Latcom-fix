@@ -102,8 +102,8 @@ class LatcomAPI {
             const xoomAmounts = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 500];
 
             if (xoomAmounts.includes(amount)) {
-                // Use XOOM product - amount must match product ID
-                productId = `XOOM_${String(amount).padStart(3, '0')}_MXN`;
+                // Use XOOM product - amount must match product ID (no leading zeros)
+                productId = `XOOM_${amount}_MXN`;
                 productName = 'XOOM Fixed Topup';
                 console.log(`✅ Using XOOM product: ${productId} with amount ${amount} MXN`);
             } else {
