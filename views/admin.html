@@ -270,34 +270,6 @@
             </div>
         </div>
 
-        <!-- Customer Management -->
-        <div class="section">
-            <h2>👥 Customer Management</h2>
-
-            <h3 style="margin-bottom: 15px;">Create New Customer</h3>
-            <div class="credit-form" style="grid-template-columns: 1fr 1fr 1fr 1fr auto;">
-                <div class="form-group">
-                    <label for="newCustomerId">Customer ID *</label>
-                    <input type="text" id="newCustomerId" placeholder="e.g., COMPANY_001" style="text-transform: uppercase;">
-                </div>
-                <div class="form-group">
-                    <label for="newCompanyName">Company Name *</label>
-                    <input type="text" id="newCompanyName" placeholder="Company Name">
-                </div>
-                <div class="form-group">
-                    <label for="newInitialBalance">Initial Balance (USD)</label>
-                    <input type="number" id="newInitialBalance" placeholder="0.00" step="0.01" value="0">
-                </div>
-                <div class="form-group">
-                    <label for="newCommission">Commission %</label>
-                    <input type="number" id="newCommission" placeholder="0.00" step="0.01" value="0">
-                </div>
-                <button onclick="createCustomer()">🆕 Create Customer</button>
-            </div>
-
-            <div id="newCustomerResult" style="margin-top: 20px; display: none;"></div>
-        </div>
-
         <!-- Credit Management -->
         <div class="section">
             <h2>💰 Credit Management</h2>
@@ -548,7 +520,6 @@
                             <td>${c.is_active ? '✅ Active' : '❌ Inactive'}</td>
                             <td>
                                 <button onclick="updateCommission('${c.customer_id}')" style="padding: 5px 10px; font-size: 0.9em;">Guardar Comisión</button>
-                                <button onclick="regenerateApiKey('${c.customer_id}')" style="padding: 5px 10px; font-size: 0.9em; background: #f59e0b;">🔑 Regenerate Key</button>
                                 <button onclick="viewCustomer('${c.customer_id}')">View</button>
                             </td>
                         </tr>
@@ -562,128 +533,6 @@
 
             } catch (error) {
                 showAlert('Failed to load customers: ' + error.message, 'error');
-            }
-        }
-
-        async function createCustomer() {
-            const customerId = document.getElementById('newCustomerId').value.trim().toUpperCase();
-            const companyName = document.getElementById('newCompanyName').value.trim();
-            const initialBalance = parseFloat(document.getElementById('newInitialBalance').value) || 0;
-            const commission = parseFloat(document.getElementById('newCommission').value) || 0;
-
-            if (!customerId || !companyName) {
-                showAlert('⚠️ Customer ID and Company Name are required', 'error');
-                return;
-            }
-
-            // Validate customer ID format
-            if (!/^[A-Z0-9_]+$/.test(customerId)) {
-                showAlert('⚠️ Customer ID must contain only uppercase letters, numbers, and underscores', 'error');
-                return;
-            }
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/admin/customers`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-admin-key': ADMIN_KEY
-                    },
-                    body: JSON.stringify({
-                        customer_id: customerId,
-                        company_name: companyName,
-                        initial_balance: initialBalance,
-                        commission_percentage: commission
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    const customer = data.customer;
-
-                    // Show success message with API key
-                    const resultDiv = document.getElementById('newCustomerResult');
-                    resultDiv.style.display = 'block';
-                    resultDiv.innerHTML = `
-                        <div style="background: #10b981; color: white; padding: 20px; border-radius: 10px;">
-                            <h3 style="color: white; margin-bottom: 15px;">✅ Customer Created Successfully!</h3>
-                            <div style="background: rgba(255,255,255,0.2); padding: 15px; border-radius: 5px; margin-bottom: 10px;">
-                                <p style="margin: 5px 0;"><strong>Customer ID:</strong> ${customer.customer_id}</p>
-                                <p style="margin: 5px 0;"><strong>Company:</strong> ${customer.company_name}</p>
-                                <p style="margin: 5px 0;"><strong>Initial Balance:</strong> $${parseFloat(customer.current_balance).toFixed(2)} USD</p>
-                                <p style="margin: 5px 0;"><strong>Commission:</strong> ${parseFloat(customer.commission_percentage).toFixed(2)}%</p>
-                            </div>
-                            <div style="background: #1f2937; padding: 15px; border-radius: 5px;">
-                                <p style="margin: 5px 0;"><strong>API Key:</strong></p>
-                                <p style="font-family: monospace; word-break: break-all; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; margin: 10px 0;">
-                                    ${customer.api_key}
-                                </p>
-                                <button onclick="copyApiKey('${customer.api_key}')" style="background: white; color: #10b981; margin-top: 10px;">
-                                    📋 Copy API Key
-                                </button>
-                                <p style="font-size: 0.9em; margin-top: 10px; opacity: 0.9;">⚠️ Save this API key securely - it won't be shown again!</p>
-                            </div>
-                        </div>
-                    `;
-
-                    // Clear form
-                    document.getElementById('newCustomerId').value = '';
-                    document.getElementById('newCompanyName').value = '';
-                    document.getElementById('newInitialBalance').value = '0';
-                    document.getElementById('newCommission').value = '0';
-
-                    // Reload customer list
-                    loadCustomers();
-
-                    // Auto-hide after 30 seconds
-                    setTimeout(() => {
-                        resultDiv.style.display = 'none';
-                    }, 30000);
-
-                } else {
-                    showAlert('❌ Error: ' + data.error, 'error');
-                }
-
-            } catch (error) {
-                showAlert('❌ Error: ' + error.message, 'error');
-            }
-        }
-
-        function copyApiKey(apiKey) {
-            navigator.clipboard.writeText(apiKey).then(() => {
-                showAlert('✅ API Key copied to clipboard!', 'success');
-            }).catch(err => {
-                showAlert('❌ Failed to copy: ' + err.message, 'error');
-            });
-        }
-
-        async function regenerateApiKey(customerId) {
-            if (!confirm(`⚠️ Are you sure you want to regenerate the API key for ${customerId}?\n\nThis will invalidate the current API key and all existing integrations will stop working until updated with the new key.`)) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`${BASE_URL}/api/admin/customers/${customerId}/regenerate-key`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-admin-key': ADMIN_KEY
-                    }
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    showAlert(`✅ New API Key: ${data.new_api_key}`, 'success');
-                    navigator.clipboard.writeText(data.new_api_key);
-                    loadCustomers();
-                } else {
-                    showAlert('❌ Error: ' + data.error, 'error');
-                }
-
-            } catch (error) {
-                showAlert('❌ Error: ' + error.message, 'error');
             }
         }
 
