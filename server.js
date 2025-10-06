@@ -6,10 +6,44 @@ const queueProcessor = require('./queue-processor');
 const forexConverter = require('./forex-converter');
 const alertSystem = require('./alert-system');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
+const { body, validationResult } = require('express-validator');
+const morgan = require('morgan');
+const fs = require('fs');
 
 const app = express();
+
+// Request logging with morgan
+const accessLogStream = fs.createWriteStream(
+    path.join(__dirname, 'access.log'),
+    { flags: 'a' }
+);
+app.use(morgan('combined', { stream: accessLogStream }));
+app.use(morgan('dev')); // Console logging
+
 app.use(express.json());
 app.use(express.static('views'));
+
+// Rate limiters
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // 100 requests per window
+    message: { success: false, error: 'Too many requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+const topupLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 10, // 10 topups per minute per customer
+    keyGenerator: (req) => req.headers['x-customer-id'] || req.ip,
+    message: { success: false, error: 'Too many topup requests. Maximum 10 per minute.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Apply general rate limiting to all API routes
+app.use('/api/', apiLimiter);
 
 // Initialize database connection
 let pool = createPool();
@@ -194,10 +228,27 @@ app.get('/health', async (req, res) => {
 });
 
 // Async topup endpoint with queue (RECOMMENDED - for high volume)
-app.post('/api/enviadespensa/topup-async', async (req, res) => {
+app.post('/api/enviadespensa/topup-async',
+    topupLimiter, // Apply rate limiting
+    // Input validation
+    body('phone').notEmpty().withMessage('Phone number is required')
+        .matches(/^[0-9]{10,15}$/).withMessage('Phone number must be 10-15 digits'),
+    body('amount').isFloat({ min: 10, max: MAX_TOPUP_AMOUNT })
+        .withMessage(`Amount must be between 10 and ${MAX_TOPUP_AMOUNT} MXN`),
+    async (req, res) => {
     const apiKey = req.headers['x-api-key'];
     const customerId = req.headers['x-customer-id'];
     const { phone, amount, reference } = req.body;
+
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            success: false,
+            error: 'Validation failed',
+            details: errors.array()
+        });
+    }
 
     console.log(`📱 Async Topup request: ${phone} for $${amount}`);
 
@@ -233,6 +284,28 @@ app.post('/api/enviadespensa/topup-async', async (req, res) => {
         }
 
         const customer = custResult.rows[0];
+
+        // Check daily transaction limit
+        const dailyTotalResult = await client.query(`
+            SELECT COALESCE(SUM(amount_mxn), 0) as total
+            FROM transactions
+            WHERE customer_id = $1
+            AND created_at > NOW() - INTERVAL '24 hours'
+            AND status = 'SUCCESS'
+        `, [customerId]);
+
+        const dailyTotal = parseFloat(dailyTotalResult.rows[0].total);
+        if (dailyTotal + parseFloat(amount) > DAILY_LIMIT_PER_CUSTOMER) {
+            await client.query('ROLLBACK');
+            return res.status(429).json({
+                success: false,
+                error: 'Daily transaction limit exceeded',
+                daily_limit_mxn: DAILY_LIMIT_PER_CUSTOMER,
+                used_today_mxn: dailyTotal,
+                requested_mxn: parseFloat(amount),
+                available_mxn: DAILY_LIMIT_PER_CUSTOMER - dailyTotal
+            });
+        }
 
         // Check balance
         if (parseFloat(customer.current_balance) < parseFloat(amount)) {
@@ -298,14 +371,35 @@ app.post('/api/enviadespensa/topup-async', async (req, res) => {
     }
 });
 
+// Security constants
+const MAX_TOPUP_AMOUNT = 500; // MXN
+const DAILY_LIMIT_PER_CUSTOMER = 5000; // MXN
+
 // Main topup endpoint with billing (SYNCHRONOUS - for compatibility)
-app.post('/api/enviadespensa/topup', async (req, res) => {
+app.post('/api/enviadespensa/topup',
+    topupLimiter, // Apply rate limiting
+    // Input validation
+    body('phone').notEmpty().withMessage('Phone number is required')
+        .matches(/^[0-9]{10,15}$/).withMessage('Phone number must be 10-15 digits'),
+    body('amount').isFloat({ min: 10, max: MAX_TOPUP_AMOUNT })
+        .withMessage(`Amount must be between 10 and ${MAX_TOPUP_AMOUNT} MXN`),
+    async (req, res) => {
     const apiKey = req.headers['x-api-key'];
     const customerId = req.headers['x-customer-id'];
     const { phone, amount, reference } = req.body;
-    
+
+    // Check validation errors
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({
+            success: false,
+            error: 'Validation failed',
+            details: errors.array()
+        });
+    }
+
     console.log(`📱 Topup request: ${phone} for $${amount}`);
-    
+
     // If no database, use TEST MODE
     if (!dbConnected) {
         if (apiKey === 'enviadespensa_prod_2025' && customerId === 'ENVIADESPENSA_001') {
@@ -350,6 +444,28 @@ app.post('/api/enviadespensa/topup', async (req, res) => {
         }
         
         const customer = custResult.rows[0];
+
+        // Check daily transaction limit
+        const dailyTotalResult = await client.query(`
+            SELECT COALESCE(SUM(amount_mxn), 0) as total
+            FROM transactions
+            WHERE customer_id = $1
+            AND created_at > NOW() - INTERVAL '24 hours'
+            AND status = 'SUCCESS'
+        `, [customerId]);
+
+        const dailyTotal = parseFloat(dailyTotalResult.rows[0].total);
+        if (dailyTotal + parseFloat(amount) > DAILY_LIMIT_PER_CUSTOMER) {
+            await client.query('ROLLBACK');
+            return res.status(429).json({
+                success: false,
+                error: 'Daily transaction limit exceeded',
+                daily_limit_mxn: DAILY_LIMIT_PER_CUSTOMER,
+                used_today_mxn: dailyTotal,
+                requested_mxn: parseFloat(amount),
+                available_mxn: DAILY_LIMIT_PER_CUSTOMER - dailyTotal
+            });
+        }
 
         // Convert MXN to USD using real-time forex
         const forex = await forexConverter.convertMXNtoUSD(amount);
