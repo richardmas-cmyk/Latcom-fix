@@ -13,6 +13,10 @@ const fs = require('fs');
 
 const app = express();
 
+// Security constants - must be defined before use in validators
+const MAX_TOPUP_AMOUNT = 500; // MXN
+const DAILY_LIMIT_PER_CUSTOMER = 5000; // MXN
+
 // Request logging with morgan
 const accessLogStream = fs.createWriteStream(
     path.join(__dirname, 'access.log'),
@@ -36,10 +40,14 @@ const apiLimiter = rateLimit({
 const topupLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
     max: 10, // 10 topups per minute per customer
-    keyGenerator: (req) => req.headers['x-customer-id'] || req.ip,
+    keyGenerator: (req, res) => {
+        // Use customer ID if provided, otherwise fall back to IP
+        return req.headers['x-customer-id'] || req.ip;
+    },
     message: { success: false, error: 'Too many topup requests. Maximum 10 per minute.' },
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => !req.headers['x-customer-id'] && !req.ip, // Skip if neither is available
 });
 
 // Apply general rate limiting to all API routes
@@ -370,10 +378,6 @@ app.post('/api/enviadespensa/topup-async',
         client.release();
     }
 });
-
-// Security constants
-const MAX_TOPUP_AMOUNT = 500; // MXN
-const DAILY_LIMIT_PER_CUSTOMER = 5000; // MXN
 
 // Main topup endpoint with billing (SYNCHRONOUS - for compatibility)
 app.post('/api/enviadespensa/topup',
