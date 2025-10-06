@@ -808,6 +808,173 @@ app.get('/api/admin/customers', async (req, res) => {
     }
 });
 
+// Create new customer (admin only)
+app.post('/api/admin/customers', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not available' });
+    }
+
+    const { customer_id, company_name, initial_balance, commission_percentage } = req.body;
+
+    if (!customer_id || !company_name) {
+        return res.status(400).json({ success: false, error: 'customer_id and company_name are required' });
+    }
+
+    try {
+        // Generate API key
+        const crypto = require('crypto');
+        const api_key = customer_id.toLowerCase() + '_' + crypto.randomBytes(16).toString('hex');
+
+        // Insert new customer
+        const result = await pool.query(`
+            INSERT INTO customers
+            (customer_id, company_name, api_key, current_balance, commission_percentage, is_active)
+            VALUES ($1, $2, $3, $4, $5, true)
+            RETURNING *
+        `, [
+            customer_id,
+            company_name,
+            api_key,
+            initial_balance || 0,
+            commission_percentage || 0
+        ]);
+
+        console.log(`✅ New customer created: ${customer_id} - ${company_name}`);
+
+        res.json({
+            success: true,
+            customer: result.rows[0],
+            message: `Customer ${company_name} created successfully`
+        });
+
+    } catch (error) {
+        if (error.code === '23505') { // Unique violation
+            return res.status(409).json({ success: false, error: 'Customer ID already exists' });
+        }
+        console.error('Create customer error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update customer (admin only)
+app.patch('/api/admin/customers/:customerId', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not available' });
+    }
+
+    const { customerId } = req.params;
+    const { company_name, commission_percentage, is_active } = req.body;
+
+    try {
+        const updates = [];
+        const values = [];
+        let paramCount = 1;
+
+        if (company_name !== undefined) {
+            updates.push(`company_name = $${paramCount}`);
+            values.push(company_name);
+            paramCount++;
+        }
+
+        if (commission_percentage !== undefined) {
+            updates.push(`commission_percentage = $${paramCount}`);
+            values.push(commission_percentage);
+            paramCount++;
+        }
+
+        if (is_active !== undefined) {
+            updates.push(`is_active = $${paramCount}`);
+            values.push(is_active);
+            paramCount++;
+        }
+
+        if (updates.length === 0) {
+            return res.status(400).json({ success: false, error: 'No fields to update' });
+        }
+
+        values.push(customerId);
+
+        const result = await pool.query(`
+            UPDATE customers
+            SET ${updates.join(', ')}
+            WHERE customer_id = $${paramCount}
+            RETURNING *
+        `, values);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Customer not found' });
+        }
+
+        console.log(`✅ Customer updated: ${customerId}`);
+
+        res.json({
+            success: true,
+            customer: result.rows[0],
+            message: 'Customer updated successfully'
+        });
+
+    } catch (error) {
+        console.error('Update customer error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Regenerate API key for customer (admin only)
+app.post('/api/admin/customers/:customerId/regenerate-key', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not available' });
+    }
+
+    const { customerId } = req.params;
+
+    try {
+        const crypto = require('crypto');
+        const new_api_key = customerId.toLowerCase() + '_' + crypto.randomBytes(16).toString('hex');
+
+        const result = await pool.query(`
+            UPDATE customers
+            SET api_key = $1
+            WHERE customer_id = $2
+            RETURNING *
+        `, [new_api_key, customerId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Customer not found' });
+        }
+
+        console.log(`✅ API key regenerated for: ${customerId}`);
+
+        res.json({
+            success: true,
+            customer: result.rows[0],
+            message: 'API key regenerated successfully',
+            new_api_key: new_api_key
+        });
+
+    } catch (error) {
+        console.error('Regenerate key error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Get all transactions across all customers (admin only)
 app.get('/api/admin/all-transactions', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
@@ -1466,12 +1633,26 @@ app.post('/api/admin/test-product', async (req, res) => {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    const { productId, phone } = req.body;
+    const { productId, phone, amount, customFormat } = req.body;
 
     try {
-        const product = getProductById(productId);
-        if (!product) {
-            return res.status(400).json({ success: false, error: 'Product not found' });
+        let product;
+
+        if (customFormat) {
+            // Allow testing with custom product format
+            product = {
+                productId: productId,
+                skuId: '0',
+                amount: amount || 10,
+                currency: 'MXN',
+                service: 2
+            };
+        } else {
+            // Use product from catalog
+            product = getProductById(productId);
+            if (!product) {
+                return res.status(400).json({ success: false, error: 'Product not found' });
+            }
         }
 
         // Use latcom-api to test the product
