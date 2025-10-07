@@ -241,12 +241,25 @@ async function initDatabase() {
 // ENDPOINTS
 app.get('/health', async (req, res) => {
     const dbStatus = dbConnected ? 'connected' : 'not connected';
-    res.json({ 
+    res.json({
         status: 'OK',
         mode: dbConnected ? 'PRODUCTION' : 'TEST_MODE',
         database: dbStatus,
         message: 'API is running'
     });
+});
+
+app.get('/api/check-ip', async (req, res) => {
+    try {
+        const axios = require('axios');
+        const response = await axios.get('https://api.ipify.org?format=json');
+        res.json({
+            outbound_ip: response.data.ip,
+            message: 'This is the IP that external APIs see'
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Async topup endpoint with queue (RECOMMENDED - for high volume)

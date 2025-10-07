@@ -10,16 +10,16 @@ class PPNProvider extends BaseProvider {
         super('PPN', {
             baseUrl: process.env.PPN_BASE_URL,
             username: process.env.PPN_USERNAME,
-            password: process.env.PPN_PASSWORD,
             environment: process.env.PPN_ENVIRONMENT || 'sandbox'
         });
 
-        this.isConfigured = !!(this.config.baseUrl && this.config.username && this.config.password);
+        // PPN uses IP whitelisting, not password authentication
+        this.isConfigured = !!(this.config.baseUrl && this.config.username);
 
         if (this.isConfigured) {
-            console.log(`✅ PPN provider configured: ${this.config.baseUrl} (${this.config.environment})`);
+            console.log(`✅ PPN provider configured: ${this.config.baseUrl} (${this.config.environment}) - IP whitelisting`);
         } else {
-            console.log('⚠️  PPN provider not configured - missing credentials');
+            console.log('⚠️  PPN provider not configured - missing base URL or username');
         }
     }
 
