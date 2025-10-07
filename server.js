@@ -1,6 +1,7 @@
 const express = require('express');
 const { createPool } = require('./database-config');
-const latcomAPI = require('./latcom-api');
+const { router: providerRouter } = require('./providers');
+const latcomAPI = require('./latcom-api'); // Keep for backwards compatibility
 const redisCache = require('./redis-cache');
 const queueProcessor = require('./queue-processor');
 const forexConverter = require('./forex-converter');
@@ -112,6 +113,19 @@ async function initDatabase() {
                 ADD COLUMN IF NOT EXISTS latcom_response_message TEXT
             `);
             console.log('✅ Database migration: Added response time tracking to transactions table');
+        } catch (migrationError) {
+            console.log('⚠️  Migration note:', migrationError.message);
+        }
+
+        // Migrate transactions table to add provider tracking (multi-provider support)
+        try {
+            await pool.query(`
+                ALTER TABLE transactions
+                ADD COLUMN IF NOT EXISTS provider VARCHAR(20) DEFAULT 'latcom',
+                ADD COLUMN IF NOT EXISTS provider_transaction_id VARCHAR(100),
+                ADD COLUMN IF NOT EXISTS transaction_type VARCHAR(20) DEFAULT 'topup'
+            `);
+            console.log('✅ Database migration: Added provider tracking to transactions table');
         } catch (migrationError) {
             console.log('⚠️  Migration note:', migrationError.message);
         }
@@ -502,27 +516,35 @@ app.post('/api/enviadespensa/topup',
         `, [transactionId, customerId, phone, amountToDeduct, 'PENDING', reference || '',
             forex.amountMXN, forex.amountUSD, forex.exchangeRate, 'MXN']);
         
-        // Call real Latcom API and measure response time
-        let latcomResult;
+        // Call Provider Router (multi-provider system with automatic failover)
+        let providerResult;
         const startTime = Date.now();
         try {
-            latcomResult = await latcomAPI.topup(phone, amount, reference);
+            providerResult = await providerRouter.processTopup({
+                phone: phone,
+                amount: amount,
+                reference: reference || transactionId,
+                country: 'MEXICO',
+                currency: 'MXN',
+                enableFailover: true  // Enable automatic failover to backup providers
+            });
         } catch (error) {
             const responseTime = Date.now() - startTime;
             await client.query(
-                'UPDATE transactions SET response_time_ms = $1, latcom_response_code = $2, latcom_response_message = $3 WHERE transaction_id = $4',
-                [responseTime, 'ERROR', error.message, transactionId]
+                'UPDATE transactions SET response_time_ms = $1, latcom_response_code = $2, latcom_response_message = $3, provider = $4 WHERE transaction_id = $5',
+                [responseTime, 'ERROR', error.message, 'error', transactionId]
             );
             await client.query('ROLLBACK');
             return res.status(500).json({
                 success: false,
-                error: 'Latcom API error: ' + error.message
+                error: 'Provider error: ' + error.message
             });
         }
         const responseTime = Date.now() - startTime;
 
-        if (latcomResult.success) {
-            const operatorId = latcomResult.operatorTransactionId;
+        if (providerResult.success) {
+            const operatorId = providerResult.providerTransactionId || providerResult.operatorTransactionId;
+            const provider = providerResult.provider || 'unknown';
             // Update customer balance
             await client.query(
                 'UPDATE customers SET current_balance = $1 WHERE customer_id = $2',
@@ -543,18 +565,19 @@ app.post('/api/enviadespensa/topup',
                 newBalance
             ]);
 
-            // Update transaction status with response time
+            // Update transaction status with response time and provider info
             await client.query(
                 `UPDATE transactions SET status = $1, operator_transaction_id = $2, processed_at = NOW(),
-                 response_time_ms = $3, latcom_response_code = $4, latcom_response_message = $5
-                 WHERE transaction_id = $6`,
-                ['SUCCESS', operatorId, responseTime, latcomResult.success ? 'SUCCESS' : 'FAILED',
-                 latcomResult.message || 'Success', transactionId]
+                 response_time_ms = $3, latcom_response_code = $4, latcom_response_message = $5,
+                 provider = $6, provider_transaction_id = $7
+                 WHERE transaction_id = $8`,
+                ['SUCCESS', operatorId, responseTime, providerResult.success ? 'SUCCESS' : 'FAILED',
+                 providerResult.message || 'Success', provider, operatorId, transactionId]
             );
             
             await client.query('COMMIT');
 
-            console.log(`✅ Transaction ${transactionId} successful. Balance: $${customer.current_balance} → $${newBalance} USD`);
+            console.log(`✅ Transaction ${transactionId} successful via ${provider.toUpperCase()}. Balance: $${customer.current_balance} → $${newBalance} USD`);
 
             // Reset failure counter on success
             alertSystem.resetFailureCounter();
@@ -573,6 +596,7 @@ app.post('/api/enviadespensa/topup',
                     phone: phone,
                     reference: reference || '',
                     operatorTransactionId: operatorId,
+                    provider: provider,
                     processedAt: new Date().toISOString(),
                     currency: 'MXN'
                 },
@@ -582,16 +606,17 @@ app.post('/api/enviadespensa/topup',
                     balance_after_usd: newBalance,
                     exchange_rate: forex.exchangeRate
                 },
-                message: `Top-up of ${amount} MXN processed successfully. $${amountToDeduct} USD deducted from balance.`,
+                message: `Top-up of ${amount} MXN processed successfully via ${provider}. $${amountToDeduct} USD deducted from balance.`,
                 remaining_balance: newBalance
             });
         } else {
-            // Latcom failed - update transaction with failure details
+            // Provider failed - update transaction with failure details
+            const provider = providerResult.provider || 'unknown';
             await client.query(
                 `UPDATE transactions SET status = $1, response_time_ms = $2,
-                 latcom_response_code = $3, latcom_response_message = $4, processed_at = NOW()
-                 WHERE transaction_id = $5`,
-                ['FAILED', responseTime, 'FAILED', latcomResult.message, transactionId]
+                 latcom_response_code = $3, latcom_response_message = $4, provider = $5, processed_at = NOW()
+                 WHERE transaction_id = $6`,
+                ['FAILED', responseTime, 'FAILED', providerResult.message, provider, transactionId]
             );
 
             // Track failure for consecutive failure alerts
@@ -602,15 +627,17 @@ app.post('/api/enviadespensa/topup',
                 amount_mxn: amount,
                 amount: amount,
                 created_at: new Date().toISOString(),
-                latcom_response_message: latcomResult.message
+                latcom_response_message: providerResult.message,
+                provider: provider
             };
             await alertSystem.trackTransactionFailure(failedTx);
 
             await client.query('ROLLBACK');
             return res.status(500).json({
                 success: false,
-                error: 'Latcom top-up failed: ' + latcomResult.message,
-                response_time_ms: responseTime
+                error: `Provider (${provider}) top-up failed: ` + providerResult.message,
+                response_time_ms: responseTime,
+                provider: provider
             });
         }
         
@@ -1606,8 +1633,10 @@ app.post('/api/admin/test-product', async (req, res) => {
 // Start server
 const PORT = process.env.PORT || 8080;
 
-console.log('🚀 Starting production server with Invoice & Monitoring System...');
-console.log('📡 Latcom API configured:', latcomAPI.isConfigured() ? 'YES' : 'NO');
+console.log('🚀 Starting Relier Hub - Multi-Provider Payment System...');
+console.log('📦 Providers: Latcom, PPN (Valuetop), CSQ');
+const configuredProviders = providerRouter.getConfiguredProviders();
+console.log(`✅ ${configuredProviders.length} provider(s) configured and ready`);
 console.log('📧 Alert system configured:', alertSystem.isConfigured() ? 'YES' : 'NO');
 
 testDatabase().then(() => {
