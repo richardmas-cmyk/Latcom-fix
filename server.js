@@ -1644,11 +1644,204 @@ app.post('/api/admin/test-product', async (req, res) => {
     }
 });
 
+// ==========================================
+// MUWE WEBHOOK ENDPOINTS
+// ==========================================
+
+const crypto = require('crypto');
+
+/**
+ * Verify MUWE webhook signature
+ */
+function verifyMUWESignature(payload, receivedSignature) {
+    const secretKey = process.env.MUWE_SECRET_KEY || 'ZtIPVopZCwxLiJgrs68MPgNOorWx9CzT';
+
+    // Remove sign field from payload
+    const { sign, ...paramsToSign } = payload;
+
+    // Sort keys alphabetically
+    const sortedKeys = Object.keys(paramsToSign).sort();
+
+    // Build signature string
+    const stringA = sortedKeys
+        .filter(key => paramsToSign[key] !== null && paramsToSign[key] !== undefined && paramsToSign[key] !== '')
+        .map(key => `${key}=${paramsToSign[key]}`)
+        .join('&');
+
+    const stringSignTemp = `${stringA}&key=${secretKey}`;
+    const calculatedSign = crypto.createHash('md5').update(stringSignTemp).digest('hex').toUpperCase();
+
+    console.log(`[MUWE Webhook] Calculated signature: ${calculatedSign}`);
+    console.log(`[MUWE Webhook] Received signature: ${receivedSignature}`);
+
+    return calculatedSign === receivedSignature;
+}
+
+/**
+ * MUWE OXXO Payment Webhook
+ * Called when customer completes payment at OXXO store
+ */
+app.post('/webhook/muwe/oxxo', async (req, res) => {
+    try {
+        console.log('📩 [MUWE Webhook] OXXO payment notification received:', JSON.stringify(req.body, null, 2));
+
+        const payload = req.body;
+
+        // Verify signature
+        if (!verifyMUWESignature(payload, payload.sign)) {
+            console.error('❌ [MUWE Webhook] Invalid signature');
+            return res.status(401).json({ resCode: 'FAIL', errDes: 'Invalid signature' });
+        }
+
+        console.log('✅ [MUWE Webhook] Signature verified');
+
+        // Extract payment details
+        const {
+            mchOrderNo,     // Our order number
+            state,          // Payment state: 2 = success
+            amount,         // Amount in cents
+            payTime,        // Payment timestamp
+            orderId         // MUWE order ID
+        } = payload;
+
+        // Update transaction in database if exists
+        if (dbConnected && mchOrderNo) {
+            try {
+                // Find transaction by reference
+                const txResult = await client.query(
+                    'SELECT * FROM transactions WHERE reference = $1',
+                    [mchOrderNo]
+                );
+
+                if (txResult.rows.length > 0) {
+                    const transaction = txResult.rows[0];
+
+                    if (state === 2) {
+                        // Payment successful
+                        await client.query(
+                            `UPDATE transactions SET
+                            status = 'SUCCESS',
+                            provider_transaction_id = $1,
+                            processed_at = $2,
+                            latcom_response_message = 'OXXO payment completed'
+                            WHERE transaction_id = $3`,
+                            [orderId, new Date(payTime * 1000), transaction.transaction_id]
+                        );
+
+                        console.log(`✅ [MUWE Webhook] Transaction ${mchOrderNo} marked as SUCCESS`);
+                    } else {
+                        console.log(`⚠️  [MUWE Webhook] Payment state: ${state} (not success)`);
+                    }
+                }
+            } catch (dbError) {
+                console.error('❌ [MUWE Webhook] Database update error:', dbError.message);
+            }
+        }
+
+        // Respond to MUWE
+        res.json({ resCode: 'SUCCESS' });
+
+    } catch (error) {
+        console.error('❌ [MUWE Webhook] Error processing OXXO webhook:', error.message);
+        res.status(500).json({ resCode: 'FAIL', errDes: error.message });
+    }
+});
+
+/**
+ * MUWE SPEI Transfer Webhook
+ * Called when SPEI transfer is completed
+ */
+app.post('/webhook/muwe/spei', async (req, res) => {
+    try {
+        console.log('📩 [MUWE Webhook] SPEI transfer notification received:', JSON.stringify(req.body, null, 2));
+
+        const payload = req.body;
+
+        // Verify signature
+        if (!verifyMUWESignature(payload, payload.sign)) {
+            console.error('❌ [MUWE Webhook] Invalid signature');
+            return res.status(401).json({ resCode: 'FAIL', errDes: 'Invalid signature' });
+        }
+
+        console.log('✅ [MUWE Webhook] Signature verified');
+
+        const {
+            mchOrderNo,
+            state,
+            amount,
+            payTime,
+            orderId
+        } = payload;
+
+        // Update transaction in database if exists
+        if (dbConnected && mchOrderNo) {
+            try {
+                const txResult = await client.query(
+                    'SELECT * FROM transactions WHERE reference = $1',
+                    [mchOrderNo]
+                );
+
+                if (txResult.rows.length > 0) {
+                    const transaction = txResult.rows[0];
+
+                    if (state === 2) {
+                        await client.query(
+                            `UPDATE transactions SET
+                            status = 'SUCCESS',
+                            provider_transaction_id = $1,
+                            processed_at = $2,
+                            latcom_response_message = 'SPEI transfer completed'
+                            WHERE transaction_id = $3`,
+                            [orderId, new Date(payTime * 1000), transaction.transaction_id]
+                        );
+
+                        console.log(`✅ [MUWE Webhook] SPEI transaction ${mchOrderNo} marked as SUCCESS`);
+                    }
+                }
+            } catch (dbError) {
+                console.error('❌ [MUWE Webhook] Database update error:', dbError.message);
+            }
+        }
+
+        res.json({ resCode: 'SUCCESS' });
+
+    } catch (error) {
+        console.error('❌ [MUWE Webhook] Error processing SPEI webhook:', error.message);
+        res.status(500).json({ resCode: 'FAIL', errDes: error.message });
+    }
+});
+
+/**
+ * Generic MUWE Webhook Handler
+ * Catches all other MUWE notifications
+ */
+app.post('/webhook/muwe', async (req, res) => {
+    try {
+        console.log('📩 [MUWE Webhook] Generic notification received:', JSON.stringify(req.body, null, 2));
+
+        const payload = req.body;
+
+        // Verify signature
+        if (payload.sign && !verifyMUWESignature(payload, payload.sign)) {
+            console.error('❌ [MUWE Webhook] Invalid signature');
+            return res.status(401).json({ resCode: 'FAIL', errDes: 'Invalid signature' });
+        }
+
+        console.log('✅ [MUWE Webhook] Notification processed');
+
+        res.json({ resCode: 'SUCCESS' });
+
+    } catch (error) {
+        console.error('❌ [MUWE Webhook] Error processing webhook:', error.message);
+        res.status(500).json({ resCode: 'FAIL', errDes: error.message });
+    }
+});
+
 // Start server
 const PORT = process.env.PORT || 8080;
 
 console.log('🚀 Starting Relier Hub - Multi-Provider Payment System...');
-console.log('📦 Providers: Latcom, PPN (Valuetop), CSQ');
+console.log('📦 Providers: Latcom, PPN (Valuetop), CSQ, MUWE');
 const configuredProviders = providerRouter.getConfiguredProviders();
 console.log(`✅ ${configuredProviders.length} provider(s) configured and ready`);
 console.log('📧 Alert system configured:', alertSystem.isConfigured() ? 'YES' : 'NO');
