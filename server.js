@@ -41,14 +41,14 @@ const apiLimiter = rateLimit({
 const topupLimiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
     max: 10, // 10 topups per minute per customer
-    keyGenerator: (req, res) => {
-        // Use customer ID if provided, otherwise fall back to IP
-        return req.headers['x-customer-id'] || req.ip;
+    keyGenerator: (req) => {
+        // Use customer ID for rate limiting (more accurate than IP)
+        return req.headers['x-customer-id'] || 'anonymous';
     },
     message: { success: false, error: 'Too many topup requests. Maximum 10 per minute.' },
     standardHeaders: true,
     legacyHeaders: false,
-    skip: (req) => !req.headers['x-customer-id'] && !req.ip, // Skip if neither is available
+    skip: (req) => !req.headers['x-customer-id'], // Skip rate limit if no customer ID
 });
 
 // Apply general rate limiting to all API routes
