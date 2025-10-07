@@ -8,16 +8,18 @@ const BaseProvider = require('./base-provider');
 class PPNProvider extends BaseProvider {
     constructor() {
         super('PPN', {
-            baseUrl: process.env.PPN_BASE_URL || 'https://miraculous-perfection-production.up.railway.app',
-            apiKey: process.env.PPN_API_KEY
+            baseUrl: process.env.PPN_BASE_URL,
+            username: process.env.PPN_USERNAME,
+            password: process.env.PPN_PASSWORD,
+            environment: process.env.PPN_ENVIRONMENT || 'sandbox'
         });
 
-        this.isConfigured = !!(this.config.apiKey);
+        this.isConfigured = !!(this.config.baseUrl && this.config.username && this.config.password);
 
         if (this.isConfigured) {
-            console.log('✅ PPN provider configured:', this.config.baseUrl);
+            console.log(`✅ PPN provider configured: ${this.config.baseUrl} (${this.config.environment})`);
         } else {
-            console.log('⚠️  PPN provider not configured');
+            console.log('⚠️  PPN provider not configured - missing credentials');
         }
     }
 
@@ -32,6 +34,15 @@ class PPNProvider extends BaseProvider {
             currencies: ['USD', 'MXN', 'INR', 'NGN', 'BRL', /* many more */],
             totalSkus: 964
         };
+    }
+
+    /**
+     * Generate Basic Auth header
+     */
+    getAuthHeader() {
+        const credentials = `${this.config.username}:${this.config.password}`;
+        const base64Credentials = Buffer.from(credentials).toString('base64');
+        return `Basic ${base64Credentials}`;
     }
 
     async topup(transaction) {
@@ -61,7 +72,7 @@ class PPNProvider extends BaseProvider {
                 requestBody,
                 {
                     headers: {
-                        'x-api-key': this.config.apiKey,
+                        'Authorization': this.getAuthHeader(),
                         'Content-Type': 'application/json'
                     },
                     timeout: 30000
@@ -140,7 +151,7 @@ class PPNProvider extends BaseProvider {
                 requestBody,
                 {
                     headers: {
-                        'x-api-key': this.config.apiKey,
+                        'Authorization': this.getAuthHeader(),
                         'Content-Type': 'application/json'
                     },
                     timeout: 30000
@@ -218,7 +229,7 @@ class PPNProvider extends BaseProvider {
                 requestBody,
                 {
                     headers: {
-                        'x-api-key': this.config.apiKey,
+                        'Authorization': this.getAuthHeader(),
                         'Content-Type': 'application/json'
                     },
                     timeout: 30000
@@ -276,7 +287,7 @@ class PPNProvider extends BaseProvider {
 
             const response = await axios.get(url, {
                 headers: {
-                    'x-api-key': this.config.apiKey,
+                    'Authorization': this.getAuthHeader(),
                     'Content-Type': 'application/json'
                 },
                 timeout: 10000
@@ -308,7 +319,7 @@ class PPNProvider extends BaseProvider {
 
             const response = await axios.get(url, {
                 headers: {
-                    'x-api-key': this.config.apiKey,
+                    'Authorization': this.getAuthHeader(),
                     'Content-Type': 'application/json'
                 },
                 timeout: 10000
@@ -339,7 +350,7 @@ class PPNProvider extends BaseProvider {
                 `${this.config.baseUrl}/balance`,
                 {
                     headers: {
-                        'x-api-key': this.config.apiKey,
+                        'Authorization': this.getAuthHeader(),
                         'Content-Type': 'application/json'
                     },
                     timeout: 10000
@@ -374,7 +385,7 @@ class PPNProvider extends BaseProvider {
                 `${this.config.baseUrl}/transaction/${providerTransactionId}`,
                 {
                     headers: {
-                        'x-api-key': this.config.apiKey,
+                        'Authorization': this.getAuthHeader(),
                         'Content-Type': 'application/json'
                     },
                     timeout: 10000
