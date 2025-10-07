@@ -70,24 +70,17 @@ class PPNProvider extends BaseProvider {
             console.log(`📞 [PPN] Processing topup: ${phone} - ${amount} - SKU: ${skuId || operator}`);
 
             const requestBody = {
+                skuId: skuId,
                 mobile: phone,
-                amount: amount
+                amount: amount,
+                correlationId: reference || `RLR_${Date.now()}`
             };
 
-            if (skuId) {
-                requestBody.skuId = skuId;
-            }
-
-            if (operator) {
-                requestBody.operator = operator;
-            }
-
-            if (reference) {
-                requestBody.reference = reference;
-            }
+            // Optional: specify transaction currency (defaults to wallet currency)
+            // requestBody.transactionCurrencyCode = 'MXN';
 
             const response = await axios.post(
-                `${this.config.baseUrl}/topup`,
+                `${this.config.baseUrl}/transaction/topup`,
                 requestBody,
                 {
                     headers: {
@@ -100,17 +93,19 @@ class PPNProvider extends BaseProvider {
 
             const responseTime = Date.now() - startTime;
 
-            if (response.data && response.data.success) {
+            // PPN success: HTTP 200 + responseCode "000"
+            if (response.data && response.data.responseCode === '000') {
+                const payload = response.data.payLoad;
                 return {
                     success: true,
                     provider: 'PPN',
-                    providerTransactionId: response.data.valuetopupTransactionId || response.data.transactionId,
-                    message: response.data.message || 'Success',
+                    providerTransactionId: payload?.valuetopupTransactionId || payload?.transactionId,
+                    message: response.data.responseMessage || 'Top-up successful',
                     responseTime: responseTime,
                     responseCode: response.data.responseCode,
-                    operatorTransactionId: response.data.operatorTransactionId,
-                    totalCost: response.data.totalCost,
-                    markup: response.data.markup,
+                    operatorTransactionId: payload?.operatorTransactionId,
+                    totalCost: payload?.transactionAmount,
+                    deliveredAmount: payload?.localCurrencyAmountExcludingTax,
                     rawResponse: response.data
                 };
             } else {
@@ -118,8 +113,9 @@ class PPNProvider extends BaseProvider {
                     success: false,
                     provider: 'PPN',
                     providerTransactionId: null,
-                    message: response.data?.error || 'Transaction failed',
+                    message: response.data?.responseMessage || 'Transaction failed',
                     responseTime: responseTime,
+                    responseCode: response.data?.responseCode,
                     rawResponse: response.data
                 };
             }
