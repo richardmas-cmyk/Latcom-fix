@@ -1,6 +1,7 @@
 const LatcomProvider = require('./latcom-provider');
 const PPNProvider = require('./ppn-provider');
 const CSQProvider = require('./csq-provider');
+const MUWEProvider = require('./muwe-provider');
 
 /**
  * Provider Router
@@ -12,19 +13,24 @@ class ProviderRouter {
         this.providers = {
             latcom: new LatcomProvider(),
             ppn: new PPNProvider(),
-            csq: new CSQProvider()
+            csq: new CSQProvider(),
+            muwe: new MUWEProvider()
         };
 
         // Default routing preferences
         this.preferences = {
-            // Mexico topups: Latcom first (better rates), fallback to PPN
-            mexico_topup: ['latcom', 'ppn'],
+            // Mexico topups: Latcom first (better rates), fallback to PPN, then MUWE
+            mexico_topup: ['latcom', 'ppn', 'muwe'],
             // International topups: PPN (global coverage)
             international_topup: ['ppn', 'csq'],
-            // Bill payments: CSQ first (when available), fallback to PPN
-            bill_payment: ['csq', 'ppn'],
+            // Bill payments: MUWE first (100+ billers), fallback to CSQ, then PPN
+            bill_payment: ['muwe', 'csq', 'ppn'],
             // Vouchers: PPN (gift cards available)
-            voucher: ['ppn', 'csq']
+            voucher: ['ppn', 'csq'],
+            // SPEI transfers: MUWE only
+            spei: ['muwe'],
+            // OXXO cash: MUWE only
+            oxxo: ['muwe']
         };
 
         // Log configured providers

@@ -7,6 +7,7 @@ const ProviderRouter = require('./provider-router');
 const LatcomProvider = require('./latcom-provider');
 const PPNProvider = require('./ppn-provider');
 const CSQProvider = require('./csq-provider');
+const MUWEProvider = require('./muwe-provider');
 const BaseProvider = require('./base-provider');
 
 // Create singleton router instance
@@ -20,6 +21,7 @@ module.exports = {
     LatcomProvider,
     PPNProvider,
     CSQProvider,
+    MUWEProvider,
     BaseProvider,
 
     // Convenience exports
