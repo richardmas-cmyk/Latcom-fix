@@ -53,15 +53,34 @@ class PPNProvider extends BaseProvider {
         }
 
         try {
-            const { phone, amount, skuId, reference } = transaction;
+            const { phone, amount, skuId, reference, operator } = transaction;
 
-            console.log(`📞 [PPN] Processing topup: ${phone} - ${amount} - SKU: ${skuId}`);
+            // PPN requires either a SKU ID or operator information
+            if (!skuId && !operator) {
+                console.log(`⚠️  [PPN] SKU ID required for PPN topups`);
+                return {
+                    success: false,
+                    provider: 'PPN',
+                    providerTransactionId: null,
+                    message: 'PPN requires SKU ID - use operator lookup or product catalog',
+                    responseTime: Date.now() - startTime
+                };
+            }
+
+            console.log(`📞 [PPN] Processing topup: ${phone} - ${amount} - SKU: ${skuId || operator}`);
 
             const requestBody = {
                 mobile: phone,
-                skuId: skuId,
                 amount: amount
             };
+
+            if (skuId) {
+                requestBody.skuId = skuId;
+            }
+
+            if (operator) {
+                requestBody.operator = operator;
+            }
 
             if (reference) {
                 requestBody.reference = reference;
