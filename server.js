@@ -260,7 +260,7 @@ app.post('/api/enviadespensa/topup-async',
     async (req, res) => {
     const apiKey = req.headers['x-api-key'];
     const customerId = req.headers['x-customer-id'];
-    const { phone, amount, reference } = req.body;
+    const { phone, amount, reference, provider } = req.body;
 
     // Check validation errors
     const errors = validationResult(req);
@@ -404,7 +404,7 @@ app.post('/api/enviadespensa/topup',
     async (req, res) => {
     const apiKey = req.headers['x-api-key'];
     const customerId = req.headers['x-customer-id'];
-    const { phone, amount, reference } = req.body;
+    const { phone, amount, reference, provider } = req.body;
 
     // Check validation errors
     const errors = validationResult(req);
@@ -526,6 +526,7 @@ app.post('/api/enviadespensa/topup',
                 reference: reference || transactionId,
                 country: 'MEXICO',
                 currency: 'MXN',
+                preferredProvider: provider,  // Use specific provider if requested
                 enableFailover: true  // Enable automatic failover to backup providers
             });
         } catch (error) {
