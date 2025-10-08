@@ -154,6 +154,7 @@ class MUWEProvider extends BaseProvider {
 
             const requestBody = {
                 merCode: parseInt(this.config.merCode),
+                posNumber: transaction.posNumber || phone, // POS identifier (defaults to phone)
                 serviceNumber: phone,
                 amount: amount,
                 payType: 103, // 103 = topups
@@ -241,6 +242,7 @@ class MUWEProvider extends BaseProvider {
 
             const requestBody = {
                 merCode: parseInt(this.config.merCode),
+                posNumber: posNumber || accountNumber, // POS identifier (defaults to account number)
                 serviceNumber: accountNumber,
                 amount: amount,
                 payType: 101, // 101 = bill payment
@@ -250,10 +252,6 @@ class MUWEProvider extends BaseProvider {
                 currency: 'MXN',
                 nonceStr: nonceStr
             };
-
-            if (posNumber) {
-                requestBody.posNumber = posNumber;
-            }
 
             // Generate signature
             requestBody.sign = this.generateSignature(requestBody);
