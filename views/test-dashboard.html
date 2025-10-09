@@ -5,6 +5,93 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Relier Hub - Testing Dashboard</title>
     <style>
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .auth-box {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .auth-box h2 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .auth-box p {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .auth-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+
+        .auth-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .auth-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .auth-error {
+            color: #f44336;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .auth-lock-icon {
+            text-align: center;
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+    </style>
+    <style>
         * {
             margin: 0;
             padding: 0;
@@ -381,7 +468,19 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Authentication Overlay -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-box">
+            <div class="auth-lock-icon">🔒</div>
+            <h2>Testing Dashboard Access</h2>
+            <p>Enter your test access key to continue</p>
+            <input type="password" id="authKey" class="auth-input" placeholder="Enter access key" autofocus>
+            <button class="auth-btn" onclick="authenticate()">Unlock Dashboard</button>
+            <div class="auth-error" id="authError">Invalid access key. Please try again.</div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContent" style="display: none;">
         <div class="header">
             <h1>🧪 Relier Hub Testing Dashboard</h1>
             <p>Test topup transactions across all providers with detailed logging</p>
@@ -482,6 +581,65 @@
 
     <script>
         let selectedProvider = 'latcom';
+        let authToken = null;
+
+        // Check if already authenticated (from sessionStorage)
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedToken = sessionStorage.getItem('testAuthToken');
+            if (savedToken) {
+                authToken = savedToken;
+                document.getElementById('authOverlay').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+            }
+        });
+
+        // Authenticate user
+        async function authenticate() {
+            const key = document.getElementById('authKey').value;
+            const errorDiv = document.getElementById('authError');
+
+            if (!key) {
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = 'Please enter an access key';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/test/auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ key: key })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    authToken = key;
+                    sessionStorage.setItem('testAuthToken', key);
+                    document.getElementById('authOverlay').style.display = 'none';
+                    document.getElementById('mainContent').style.display = 'block';
+                } else {
+                    errorDiv.style.display = 'block';
+                    errorDiv.textContent = 'Invalid access key. Please try again.';
+                    document.getElementById('authKey').value = '';
+                }
+            } catch (error) {
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = 'Authentication error. Please try again.';
+            }
+        }
+
+        // Allow Enter key for authentication
+        document.addEventListener('DOMContentLoaded', () => {
+            const authInput = document.getElementById('authKey');
+            if (authInput) {
+                authInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') authenticate();
+                });
+            }
+        });
 
         // Provider selection
         document.querySelectorAll('.provider-badge').forEach(badge => {
@@ -662,6 +820,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'x-test-key': authToken
                     },
                     body: JSON.stringify({
                         phone: phone,

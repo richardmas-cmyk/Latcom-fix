@@ -915,8 +915,34 @@ app.get('/test', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'test-dashboard.html'));
 });
 
+// Test authentication endpoint
+app.post('/api/test/auth', (req, res) => {
+    const { key } = req.body;
+    const testKey = process.env.TEST_KEY || 'relier_test_2025';
+
+    if (key === testKey) {
+        console.log('✅ [TEST] Authentication successful');
+        res.json({ success: true, message: 'Authentication successful' });
+    } else {
+        console.log('❌ [TEST] Authentication failed - invalid key');
+        res.status(401).json({ success: false, error: 'Invalid access key' });
+    }
+});
+
 // Testing API endpoint with full logging
 app.post('/api/test/topup', async (req, res) => {
+    // Verify authentication
+    const testKey = req.headers['x-test-key'];
+    const validKey = process.env.TEST_KEY || 'relier_test_2025';
+
+    if (!testKey || testKey !== validKey) {
+        console.log('❌ [TEST] Unauthorized test attempt');
+        return res.status(401).json({
+            timestamp: new Date().toISOString(),
+            error: 'Unauthorized - Invalid test key',
+            success: false
+        });
+    }
     const startTime = Date.now();
     const timestamp = new Date().toISOString();
 
