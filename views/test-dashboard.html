@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relier Hub - Testing Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 20px;
+        }
+
+        .test-panel {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+
+        .test-panel h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .form-group select:focus,
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group input::placeholder {
+            color: #aaa;
+        }
+
+        .provider-badges {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .provider-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .provider-badge.latcom {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .provider-badge.ppn {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .provider-badge.csq {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .provider-badge.muwe {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .provider-badge.selected {
+            border-color: currentColor;
+            transform: scale(1.05);
+        }
+
+        .btn-test {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-test:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-test:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .logs-panel {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .logs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logs-header h2 {
+            color: #333;
+            font-size: 20px;
+        }
+
+        .btn-clear {
+            padding: 8px 16px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-clear:hover {
+            background: #d32f2f;
+        }
+
+        .log-entry {
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .log-header {
+            padding: 15px;
+            background: #f5f5f5;
+            border-bottom: 2px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .log-timestamp {
+            color: #666;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .log-status {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .log-status.success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .log-status.error {
+            background: #f44336;
+            color: white;
+        }
+
+        .log-status.pending {
+            background: #ff9800;
+            color: white;
+        }
+
+        .log-body {
+            padding: 15px;
+        }
+
+        .log-section {
+            margin-bottom: 15px;
+        }
+
+        .log-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .log-section-title {
+            color: #555;
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .log-section-title::before {
+            content: '▶';
+            color: #667eea;
+        }
+
+        .log-content {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .log-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .log-summary-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .log-summary-label {
+            color: #666;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+
+        .log-summary-value {
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .quick-tests {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+
+        .quick-tests h3 {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .quick-test-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .btn-quick-test {
+            padding: 8px;
+            background: #e3f2fd;
+            color: #1976d2;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-quick-test:hover {
+            background: #1976d2;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧪 Relier Hub Testing Dashboard</h1>
+            <p>Test topup transactions across all providers with detailed logging</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Left Panel: Test Form -->
+            <div class="test-panel">
+                <h2>🎯 Test Configuration</h2>
+
+                <div class="form-group">
+                    <label>Provider</label>
+                    <div class="provider-badges">
+                        <div class="provider-badge latcom selected" data-provider="latcom">
+                            Latcom
+                        </div>
+                        <div class="provider-badge ppn" data-provider="ppn">
+                            PPN
+                        </div>
+                        <div class="provider-badge csq" data-provider="csq">
+                            CSQ
+                        </div>
+                        <div class="provider-badge muwe" data-provider="muwe">
+                            MUWE
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="product">Product / Amount (MXN)</label>
+                    <select id="product">
+                        <optgroup label="XOOM Fixed Products">
+                            <option value="10">XOOM_10_MXN - 10 MXN</option>
+                            <option value="20">XOOM_20_MXN - 20 MXN</option>
+                            <option value="30" selected>XOOM_30_MXN - 30 MXN</option>
+                            <option value="40">XOOM_40_MXN - 40 MXN</option>
+                            <option value="50">XOOM_50_MXN - 50 MXN</option>
+                            <option value="60">XOOM_60_MXN - 60 MXN</option>
+                            <option value="70">XOOM_70_MXN - 70 MXN</option>
+                            <option value="80">XOOM_80_MXN - 80 MXN</option>
+                            <option value="90">XOOM_90_MXN - 90 MXN</option>
+                            <option value="100">XOOM_100_MXN - 100 MXN</option>
+                            <option value="150">XOOM_150_MXN - 150 MXN</option>
+                            <option value="200">XOOM_200_MXN - 200 MXN</option>
+                            <option value="300">XOOM_300_MXN - 300 MXN</option>
+                            <option value="500">XOOM_500_MXN - 500 MXN</option>
+                        </optgroup>
+                        <optgroup label="Open Range">
+                            <option value="custom">Custom Amount (TFE_MXN_20_TO_2000)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div class="form-group" id="customAmountGroup" style="display: none;">
+                    <label for="customAmount">Custom Amount (MXN)</label>
+                    <input type="number" id="customAmount" placeholder="Enter amount (20-2000)" min="20" max="2000">
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Mexican Phone Number</label>
+                    <input type="tel" id="phone" placeholder="5566374683" pattern="[0-9]{10}" maxlength="10">
+                    <small style="color: #666; font-size: 12px; display: block; margin-top: 5px;">
+                        Enter 10 digits (without country code)
+                    </small>
+                </div>
+
+                <button class="btn-test" id="btnTest">
+                    🚀 Run Test
+                </button>
+
+                <div class="quick-tests">
+                    <h3>⚡ Quick Tests</h3>
+                    <div class="quick-test-buttons">
+                        <button class="btn-quick-test" onclick="quickTest('5566374683', 10)">Test 10 MXN</button>
+                        <button class="btn-quick-test" onclick="quickTest('5516369860', 30)">Test 30 MXN</button>
+                        <button class="btn-quick-test" onclick="quickTest('5615622314', 50)">Test 50 MXN</button>
+                        <button class="btn-quick-test" onclick="quickTest('5533715820', 100)">Test 100 MXN</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Transaction Logs -->
+            <div class="logs-panel">
+                <div class="logs-header">
+                    <h2>📋 Transaction Logs</h2>
+                    <button class="btn-clear" onclick="clearLogs()">Clear Logs</button>
+                </div>
+
+                <div id="logs">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📊</div>
+                        <p>No transactions yet. Run a test to see detailed logs.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedProvider = 'latcom';
+
+        // Provider selection
+        document.querySelectorAll('.provider-badge').forEach(badge => {
+            badge.addEventListener('click', () => {
+                document.querySelectorAll('.provider-badge').forEach(b => b.classList.remove('selected'));
+                badge.classList.add('selected');
+                selectedProvider = badge.dataset.provider;
+            });
+        });
+
+        // Custom amount toggle
+        document.getElementById('product').addEventListener('change', (e) => {
+            const customGroup = document.getElementById('customAmountGroup');
+            if (e.target.value === 'custom') {
+                customGroup.style.display = 'block';
+            } else {
+                customGroup.style.display = 'none';
+            }
+        });
+
+        // Quick test function
+        function quickTest(phone, amount) {
+            document.getElementById('phone').value = phone;
+            document.getElementById('product').value = amount;
+            runTest();
+        }
+
+        // Clear logs
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">📊</div>
+                    <p>No transactions yet. Run a test to see detailed logs.</p>
+                </div>
+            `;
+        }
+
+        // Add loading indicator
+        function addLoadingLog() {
+            const logsContainer = document.getElementById('logs');
+            if (logsContainer.querySelector('.empty-state')) {
+                logsContainer.innerHTML = '';
+            }
+
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.id = 'loading-log';
+            logEntry.innerHTML = `
+                <div class="log-header">
+                    <span class="log-timestamp">${new Date().toISOString()}</span>
+                    <span class="log-status pending">PROCESSING</span>
+                </div>
+                <div class="log-body">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Processing transaction...</p>
+                    </div>
+                </div>
+            `;
+            logsContainer.insertBefore(logEntry, logsContainer.firstChild);
+        }
+
+        // Add transaction log
+        function addTransactionLog(data) {
+            const loadingLog = document.getElementById('loading-log');
+            if (loadingLog) {
+                loadingLog.remove();
+            }
+
+            const logsContainer = document.getElementById('logs');
+            if (logsContainer.querySelector('.empty-state')) {
+                logsContainer.innerHTML = '';
+            }
+
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+
+            const isSuccess = data.apiResponse?.success;
+            const statusClass = isSuccess ? 'success' : 'error';
+            const statusText = isSuccess ? 'SUCCESS' : 'FAILED';
+
+            logEntry.innerHTML = `
+                <div class="log-header">
+                    <span class="log-timestamp">${data.timestamp}</span>
+                    <span class="log-status ${statusClass}">${statusText}</span>
+                </div>
+                <div class="log-body">
+                    <div class="log-summary">
+                        <div class="log-summary-item">
+                            <div class="log-summary-label">Phone</div>
+                            <div class="log-summary-value">${data.request.phone}</div>
+                        </div>
+                        <div class="log-summary-item">
+                            <div class="log-summary-label">Amount</div>
+                            <div class="log-summary-value">${data.request.amount} MXN</div>
+                        </div>
+                        <div class="log-summary-item">
+                            <div class="log-summary-label">Provider</div>
+                            <div class="log-summary-value">${data.request.provider.toUpperCase()}</div>
+                        </div>
+                        <div class="log-summary-item">
+                            <div class="log-summary-label">Response Time</div>
+                            <div class="log-summary-value">${data.responseTime}ms</div>
+                        </div>
+                        ${isSuccess ? `
+                        <div class="log-summary-item">
+                            <div class="log-summary-label">Transaction ID</div>
+                            <div class="log-summary-value">${data.apiResponse.transaction?.operatorTransactionId || 'N/A'}</div>
+                        </div>
+                        <div class="log-summary-item">
+                            <div class="log-summary-label">USD Cost</div>
+                            <div class="log-summary-value">$${data.apiResponse.billing?.deducted_usd || 'N/A'}</div>
+                        </div>
+                        ` : ''}
+                    </div>
+
+                    <div class="log-section">
+                        <div class="log-section-title">Request Headers</div>
+                        <div class="log-content">${JSON.stringify(data.request.headers, null, 2)}</div>
+                    </div>
+
+                    <div class="log-section">
+                        <div class="log-section-title">Request Body</div>
+                        <div class="log-content">${JSON.stringify(data.request.body, null, 2)}</div>
+                    </div>
+
+                    <div class="log-section">
+                        <div class="log-section-title">API Response</div>
+                        <div class="log-content">${JSON.stringify(data.apiResponse, null, 2)}</div>
+                    </div>
+
+                    ${data.error ? `
+                    <div class="log-section">
+                        <div class="log-section-title">Error Details</div>
+                        <div class="log-content" style="color: #f44336;">${data.error}</div>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+
+            logsContainer.insertBefore(logEntry, logsContainer.firstChild);
+        }
+
+        // Run test
+        async function runTest() {
+            const productSelect = document.getElementById('product');
+            const phoneInput = document.getElementById('phone');
+            const customAmountInput = document.getElementById('customAmount');
+            const btnTest = document.getElementById('btnTest');
+
+            // Validation
+            const phone = phoneInput.value.trim();
+            if (!phone || phone.length !== 10 || !/^\d{10}$/.test(phone)) {
+                alert('Please enter a valid 10-digit Mexican phone number');
+                return;
+            }
+
+            let amount;
+            if (productSelect.value === 'custom') {
+                amount = parseInt(customAmountInput.value);
+                if (!amount || amount < 20 || amount > 2000) {
+                    alert('Please enter a custom amount between 20 and 2000 MXN');
+                    return;
+                }
+            } else {
+                amount = parseInt(productSelect.value);
+            }
+
+            // Disable button
+            btnTest.disabled = true;
+            btnTest.textContent = '⏳ Processing...';
+
+            // Add loading indicator
+            addLoadingLog();
+
+            try {
+                const response = await fetch('/api/test/topup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        phone: phone,
+                        amount: amount,
+                        provider: selectedProvider
+                    })
+                });
+
+                const data = await response.json();
+                addTransactionLog(data);
+
+            } catch (error) {
+                addTransactionLog({
+                    timestamp: new Date().toISOString(),
+                    request: {
+                        phone: phone,
+                        amount: amount,
+                        provider: selectedProvider,
+                        headers: {},
+                        body: {}
+                    },
+                    apiResponse: null,
+                    error: error.message,
+                    responseTime: 0
+                });
+            } finally {
+                // Re-enable button
+                btnTest.disabled = false;
+                btnTest.textContent = '🚀 Run Test';
+            }
+        }
+
+        // Attach event listener
+        document.getElementById('btnTest').addEventListener('click', runTest);
+
+        // Enter key support
+        document.getElementById('phone').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') runTest();
+        });
+    </script>
+</body>
+</html>

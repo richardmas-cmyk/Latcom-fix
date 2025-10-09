@@ -910,6 +910,90 @@ app.get('/queue', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'queue-monitor.html'));
 });
 
+// Testing dashboard route
+app.get('/test', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'test-dashboard.html'));
+});
+
+// Testing API endpoint with full logging
+app.post('/api/test/topup', async (req, res) => {
+    const startTime = Date.now();
+    const timestamp = new Date().toISOString();
+
+    const { phone, amount, provider = 'latcom' } = req.body;
+
+    // Build request log
+    const requestLog = {
+        headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': 'enviadespensa_prod_2025',
+            'x-customer-id': 'ENVIADESPENSA_001'
+        },
+        body: {
+            phone: phone,
+            amount: amount,
+            reference: `TEST_${amount}_${Date.now()}`,
+            provider: provider
+        }
+    };
+
+    console.log('🧪 [TEST] Starting test topup:', JSON.stringify(requestLog, null, 2));
+
+    try {
+        // Make the actual topup request
+        const axios = require('axios');
+        const apiResponse = await axios.post(
+            'https://latcom-fix-production.up.railway.app/api/enviadespensa/topup',
+            requestLog.body,
+            {
+                headers: requestLog.headers,
+                timeout: 30000
+            }
+        );
+
+        const responseTime = Date.now() - startTime;
+
+        console.log('✅ [TEST] Topup successful:', JSON.stringify(apiResponse.data, null, 2));
+
+        // Return complete log
+        res.json({
+            timestamp: timestamp,
+            request: {
+                phone: phone,
+                amount: amount,
+                provider: provider,
+                headers: requestLog.headers,
+                body: requestLog.body
+            },
+            apiResponse: apiResponse.data,
+            responseTime: responseTime,
+            success: true
+        });
+
+    } catch (error) {
+        const responseTime = Date.now() - startTime;
+
+        console.error('❌ [TEST] Topup failed:', error.message);
+        console.error('Error details:', error.response?.data || error.message);
+
+        // Return error log
+        res.json({
+            timestamp: timestamp,
+            request: {
+                phone: phone,
+                amount: amount,
+                provider: provider,
+                headers: requestLog.headers,
+                body: requestLog.body
+            },
+            apiResponse: error.response?.data || null,
+            error: error.response?.data?.error || error.message,
+            responseTime: responseTime,
+            success: false
+        });
+    }
+});
+
 // Get transactions for dashboard
 app.get('/api/admin/transactions', async (req, res) => {
     const apiKey = req.headers['x-api-key'];
