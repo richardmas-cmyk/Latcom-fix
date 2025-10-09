@@ -99,17 +99,18 @@ class LatcomProvider extends BaseProvider {
 
             console.log(`📞 [Latcom] Processing topup: ${cleanPhone} - ${amount} ${currency}`);
 
-            // Determine product ID
-            let productId;
-            const xoomAmounts = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 500];
+            // LATCOM 16% MARKUP ADJUSTMENT
+            // Latcom adds 16% markup, so we send LESS to ensure customer gets exact amount
+            // Example: Customer wants 30 MXN → We send 25.86 MXN → Latcom delivers 30.00 MXN
+            const LATCOM_MARKUP = 1.16; // 16% markup
+            const adjustedAmount = parseFloat((amount / LATCOM_MARKUP).toFixed(2));
 
-            if (xoomAmounts.includes(amount)) {
-                productId = `XOOM_${amount}_MXN`;
-                console.log(`✅ [Latcom] Using XOOM product: ${productId}`);
-            } else {
-                productId = "TFE_MXN_20_TO_2000";
-                console.log(`✅ [Latcom] Using open range product: ${productId}`);
-            }
+            console.log(`💱 [Latcom] Adjusting for 16% markup: ${amount} MXN → ${adjustedAmount} MXN (send amount)`);
+            console.log(`   Customer will receive: ${adjustedAmount} × ${LATCOM_MARKUP} = ${(adjustedAmount * LATCOM_MARKUP).toFixed(2)} MXN`);
+
+            // Always use open range product for precise control
+            const productId = "TFE_MXN_20_TO_2000";
+            console.log(`✅ [Latcom] Using open range product: ${productId}`);
 
             const requestBody = {
                 targetMSISDN: cleanPhone,
@@ -117,7 +118,7 @@ class LatcomProvider extends BaseProvider {
                 operator: "TELEFONICA",
                 country: country,
                 currency: currency,
-                amount: amount,
+                amount: adjustedAmount,  // Send adjusted amount (16% less)
                 productId: productId,
                 skuID: "0",
                 service: 2
