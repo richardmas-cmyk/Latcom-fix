@@ -262,6 +262,100 @@ app.get('/api/check-ip', async (req, res) => {
     }
 });
 
+// ============================================
+// TWILIO INTEGRATION
+// ============================================
+const twilioService = require('./lib/twilio-service');
+
+// Twilio SMS Webhook (Incoming messages)
+app.post('/webhook/twilio/sms', async (req, res) => {
+    console.log('📱 [Twilio] Incoming SMS webhook:', req.body);
+
+    try {
+        // Parse incoming message
+        const message = twilioService.parseIncomingMessage(req.body);
+        console.log('📨 [Twilio] Message from:', message.from, 'Text:', message.message);
+
+        // Generate auto-reply
+        const reply = twilioService.generateAutoReply(message);
+
+        // Send TwiML response
+        const MessagingResponse = require('twilio').twiml.MessagingResponse;
+        const twiml = new MessagingResponse();
+        twiml.message(reply);
+
+        res.type('text/xml');
+        res.send(twiml.toString());
+
+    } catch (error) {
+        console.error('❌ [Twilio] SMS webhook error:', error.message);
+        res.status(500).send('Error processing message');
+    }
+});
+
+// Twilio WhatsApp Webhook (Incoming messages)
+app.post('/webhook/twilio/whatsapp', async (req, res) => {
+    console.log('💬 [Twilio] Incoming WhatsApp webhook:', req.body);
+
+    try {
+        // Parse incoming message
+        const message = twilioService.parseIncomingMessage(req.body);
+        console.log('💬 [Twilio] WhatsApp from:', message.from, 'Text:', message.message);
+
+        // Generate auto-reply
+        const reply = twilioService.generateAutoReply(message);
+
+        // Send TwiML response
+        const MessagingResponse = require('twilio').twiml.MessagingResponse;
+        const twiml = new MessagingResponse();
+        twiml.message(reply);
+
+        res.type('text/xml');
+        res.send(twiml.toString());
+
+    } catch (error) {
+        console.error('❌ [Twilio] WhatsApp webhook error:', error.message);
+        res.status(500).send('Error processing message');
+    }
+});
+
+// Twilio Status Callback (Message delivery status)
+app.post('/webhook/twilio/status', async (req, res) => {
+    console.log('📊 [Twilio] Status callback:', req.body);
+
+    const { MessageSid, MessageStatus, To, ErrorCode } = req.body;
+
+    if (ErrorCode) {
+        console.error(`❌ [Twilio] Message ${MessageSid} to ${To} failed: ${ErrorCode}`);
+    } else {
+        console.log(`✅ [Twilio] Message ${MessageSid} to ${To} status: ${MessageStatus}`);
+    }
+
+    res.sendStatus(200);
+});
+
+// Test Twilio endpoint
+app.post('/api/twilio/test', async (req, res) => {
+    const { phone, message, channel = 'sms' } = req.body;
+
+    if (!phone || !message) {
+        return res.status(400).json({ error: 'Phone and message required' });
+    }
+
+    try {
+        let result;
+        if (channel === 'whatsapp') {
+            result = await twilioService.sendWhatsApp(phone, message);
+        } else {
+            result = await twilioService.sendSMS(phone, message);
+        }
+
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // Async topup endpoint with queue (RECOMMENDED - for high volume)
 app.post('/api/enviadespensa/topup-async',
     topupLimiter, // Apply rate limiting
