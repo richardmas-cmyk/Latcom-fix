@@ -693,26 +693,27 @@ app.post('/api/enviadespensa/topup',
             // Check for low balance alert
             await alertSystem.checkLowBalance(customerId, customer.company_name || customerId, newBalance, 1000);
 
-            // Send SMS notification to customer
-            try {
-                const twilioResult = await twilioService.sendTransactionNotification({
-                    phone: `+52${phone}`, // Add Mexico country code
-                    amount: amount,
-                    currency: 'MXN',
-                    status: 'SUCCESS',
-                    operatorTransactionId: operatorId,
-                    provider: provider
-                }, ['sms']);
+            // Send SMS notification to customer - DISABLED
+            // try {
+            //     const twilioResult = await twilioService.sendTransactionNotification({
+            //         phone: `+52${phone}`, // Add Mexico country code
+            //         amount: amount,
+            //         currency: 'MXN',
+            //         status: 'SUCCESS',
+            //         operatorTransactionId: operatorId,
+            //         provider: provider
+            //     }, ['sms']);
 
-                if (twilioResult.sms?.success) {
-                    console.log(`📱 SMS notification sent to +52${phone} - Message SID: ${twilioResult.sms.messageSid}`);
-                } else {
-                    console.log(`⚠️  SMS notification failed: ${twilioResult.sms?.error}`);
-                }
-            } catch (smsError) {
-                // Don't fail the transaction if SMS fails
-                console.error(`❌ SMS notification error: ${smsError.message}`);
-            }
+            //     if (twilioResult.sms?.success) {
+            //         console.log(`📱 SMS notification sent to +52${phone} - Message SID: ${twilioResult.sms.messageSid}`);
+            //     } else {
+            //         console.log(`⚠️  SMS notification failed: ${twilioResult.sms?.error}`);
+            //     }
+            // } catch (smsError) {
+            //     // Don't fail the transaction if SMS fails
+            //     console.error(`❌ SMS notification error: ${smsError.message}`);
+            // }
+            console.log(`📱 SMS notifications paused - no message sent to +52${phone}`);
 
             res.json({
                 success: true,
