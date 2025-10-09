@@ -560,6 +560,33 @@
                         <button class="btn-quick-test" onclick="quickTest('5533715820', 100)">Test 100 MXN</button>
                     </div>
                 </div>
+
+                <div class="quick-tests">
+                    <h3>📱 Twilio Messaging</h3>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="twilioPhone" style="font-size: 12px;">Phone Number (with country code)</label>
+                        <input type="tel" id="twilioPhone" class="auth-input" placeholder="+15551234567" style="padding: 10px; font-size: 14px; margin-bottom: 10px;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="smsMessage" style="font-size: 12px;">SMS Message</label>
+                        <textarea id="smsMessage" class="auth-input" placeholder="Enter your SMS message..." style="padding: 10px; font-size: 14px; min-height: 80px; resize: vertical; font-family: inherit;"></textarea>
+                    </div>
+
+                    <button class="btn-quick-test" onclick="sendTestSMS()" style="width: 100%; margin-bottom: 10px;">
+                        📱 Send SMS
+                    </button>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label for="whatsappMessage" style="font-size: 12px;">WhatsApp Message</label>
+                        <textarea id="whatsappMessage" class="auth-input" placeholder="Enter your WhatsApp message..." style="padding: 10px; font-size: 14px; min-height: 80px; resize: vertical; font-family: inherit;"></textarea>
+                    </div>
+
+                    <button class="btn-quick-test" onclick="sendTestWhatsApp()" style="width: 100%; background: #25d366; color: white;">
+                        💬 Send WhatsApp
+                    </button>
+                </div>
             </div>
 
             <!-- Right Panel: Transaction Logs -->
@@ -860,6 +887,77 @@
         document.getElementById('phone').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') runTest();
         });
+
+        // Twilio testing functions
+        async function sendTestSMS() {
+            const phone = document.getElementById('twilioPhone').value;
+            const message = document.getElementById('smsMessage').value;
+
+            if (!phone || !message) {
+                alert('Please enter phone number and message');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/twilio/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-test-key': authToken
+                    },
+                    body: JSON.stringify({
+                        phone: phone,
+                        message: message,
+                        channel: 'sms'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ SMS sent successfully!\nMessage SID: ${result.messageSid}`);
+                } else {
+                    alert(`❌ SMS failed: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`❌ Error: ${error.message}`);
+            }
+        }
+
+        async function sendTestWhatsApp() {
+            const phone = document.getElementById('twilioPhone').value;
+            const message = document.getElementById('whatsappMessage').value;
+
+            if (!phone || !message) {
+                alert('Please enter phone number and message');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/twilio/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-test-key': authToken
+                    },
+                    body: JSON.stringify({
+                        phone: phone,
+                        message: message,
+                        channel: 'whatsapp'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`✅ WhatsApp sent successfully!\nMessage SID: ${result.messageSid}`);
+                } else {
+                    alert(`❌ WhatsApp failed: ${result.error}`);
+                }
+            } catch (error) {
+                alert(`❌ Error: ${error.message}`);
+            }
+        }
     </script>
 </body>
 </html>
