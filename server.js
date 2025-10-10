@@ -8,6 +8,7 @@ const forexConverter = require('./forex-converter');
 const alertSystem = require('./alert-system');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
+const RedisStore = require('rate-limit-redis');
 const { body, validationResult } = require('express-validator');
 const morgan = require('morgan');
 const fs = require('fs');
@@ -29,27 +30,50 @@ app.use(morgan('dev')); // Console logging
 app.use(express.json());
 app.use(express.static('views'));
 
-// Rate limiters
-const apiLimiter = rateLimit({
+// Rate limiters with Redis support
+const rateLimiterConfig = {
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 300, // 300 requests per window (increased for admin dashboards)
     message: { success: false, error: 'Too many requests, please try again later' },
     standardHeaders: true,
     legacyHeaders: false,
-});
+};
 
-const topupLimiter = rateLimit({
+// Add Redis store if available
+if (process.env.REDIS_URL && redisCache.isAvailable()) {
+    rateLimiterConfig.store = new RedisStore({
+        client: redisCache.client,
+        prefix: 'rl:api:'
+    });
+    console.log('✅ Rate limiting using Redis');
+} else {
+    console.log('⚠️  Rate limiting using memory (less accurate for multiple instances)');
+}
+
+const apiLimiter = rateLimit(rateLimiterConfig);
+
+const topupLimiterConfig = {
     windowMs: 60 * 1000, // 1 minute
-    max: 10, // 10 topups per minute per customer
+    max: 200, // Increased from 10 to 200 per minute per customer (for 700K/day volume)
     keyGenerator: (req) => {
         // Use customer ID for rate limiting (more accurate than IP)
         return req.headers['x-customer-id'] || 'anonymous';
     },
-    message: { success: false, error: 'Too many topup requests. Maximum 10 per minute.' },
+    message: { success: false, error: 'Too many topup requests. Maximum 200 per minute.' },
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req) => !req.headers['x-customer-id'], // Skip rate limit if no customer ID
-});
+};
+
+// Add Redis store if available
+if (process.env.REDIS_URL && redisCache.isAvailable()) {
+    topupLimiterConfig.store = new RedisStore({
+        client: redisCache.client,
+        prefix: 'rl:topup:'
+    });
+}
+
+const topupLimiter = rateLimit(topupLimiterConfig);
 
 // Apply general rate limiting to all API routes
 app.use('/api/', apiLimiter);
@@ -240,13 +264,67 @@ async function initDatabase() {
 
 // ENDPOINTS
 app.get('/health', async (req, res) => {
-    const dbStatus = dbConnected ? 'connected' : 'not connected';
-    res.json({
-        status: 'OK',
-        mode: dbConnected ? 'PRODUCTION' : 'TEST_MODE',
-        database: dbStatus,
-        message: 'API is running'
-    });
+    try {
+        const health = {
+            status: 'OK',
+            timestamp: new Date().toISOString(),
+            uptime: process.uptime(),
+            mode: dbConnected ? 'PRODUCTION' : 'TEST_MODE',
+            services: {}
+        };
+
+        // Database status
+        health.services.database = {
+            connected: dbConnected,
+            status: dbConnected ? 'healthy' : 'disconnected',
+            pool: {
+                max: 100,
+                min: 10
+            }
+        };
+
+        // Redis status
+        health.services.redis = {
+            connected: redisCache.isAvailable(),
+            status: redisCache.isAvailable() ? 'healthy' : 'not configured'
+        };
+
+        // Queue status
+        if (queueProcessor.isAvailable()) {
+            const queueStats = await queueProcessor.getQueueStats();
+            health.services.queue = {
+                connected: true,
+                status: 'healthy',
+                stats: queueStats
+            };
+        } else {
+            health.services.queue = {
+                connected: false,
+                status: 'not configured'
+            };
+        }
+
+        // Rate limiting info
+        health.services.rateLimiting = {
+            backend: redisCache.isAvailable() ? 'redis' : 'memory',
+            apiLimit: '300 per 15 minutes',
+            topupLimit: '200 per minute per customer'
+        };
+
+        // Set overall health status
+        const allHealthy = health.services.database.connected && health.services.redis.connected;
+        if (!allHealthy) {
+            health.status = 'DEGRADED';
+        }
+
+        res.json(health);
+
+    } catch (error) {
+        res.status(500).json({
+            status: 'ERROR',
+            error: error.message
+        });
+    }
 });
 
 app.get('/api/check-ip', async (req, res) => {

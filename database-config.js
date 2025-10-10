@@ -29,8 +29,8 @@ function createPool() {
 
     return new Pool({
         connectionString: urlNoSSL,
-        max: 20, // Max 20 connections for high volume
-        min: 5,  // Keep 5 connections always ready
+        max: 100, // Max 100 connections for high volume (700K/day support)
+        min: 10,  // Keep 10 connections always ready
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 5000
     });
