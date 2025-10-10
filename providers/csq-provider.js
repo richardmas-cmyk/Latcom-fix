@@ -154,14 +154,15 @@ class CSQProvider extends BaseProvider {
 
         try {
             console.log('[CSQ] Received transaction:', JSON.stringify(transaction));
-            const { phone, amount, reference, skuId, country = 'MX' } = transaction;
+            const { phone, amount, skuId, country = 'MX' } = transaction;
 
             // SKU ID is required (not operator ID)
             // Telcel = 396, Amigo Sin Limites = 683, Internet Amigo = 684
             const productSkuId = skuId || '396'; // Default to Telcel
 
-            // Simple local reference format (numeric)
-            const localRef = reference || String(Date.now()).slice(-8);
+            // Simple local reference format (numeric) - ALWAYS generate, don't use passed reference
+            // CSQ requires simple numeric reference like "12356"
+            const localRef = String(Date.now()).slice(-8);
 
             console.log(`📞 [CSQ] Processing topup: ${phone} - ${amount} MXN - SKU: ${productSkuId}`);
 
