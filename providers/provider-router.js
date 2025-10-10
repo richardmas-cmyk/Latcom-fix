@@ -148,7 +148,25 @@ class ProviderRouter {
      * Includes automatic failover if first provider fails
      */
     async processTopup(transaction) {
-        const { country = 'MEXICO', enableFailover = true } = transaction;
+        const { country = 'MEXICO', enableFailover = true, preferredProvider } = transaction;
+
+        // If specific provider requested, use ONLY that provider (no failover)
+        if (preferredProvider) {
+            const providerName = preferredProvider.toLowerCase();
+            const provider = this.providers[providerName];
+
+            if (!provider) {
+                throw new Error(`Provider ${preferredProvider} not found`);
+            }
+
+            if (!provider.isReady()) {
+                throw new Error(`Provider ${preferredProvider} not configured`);
+            }
+
+            console.log(`🎯 [Router] Using ONLY preferred provider: ${preferredProvider.toUpperCase()}`);
+            const result = await provider.topup(transaction);
+            return result;
+        }
 
         // Determine provider order
         const category = (country.toUpperCase() === 'MEXICO' || country.toUpperCase() === 'MX')
