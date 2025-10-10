@@ -153,46 +153,31 @@ class CSQProvider extends BaseProvider {
         }
 
         try {
-            const { phone, amount, reference, operatorId, country = 'MX' } = transaction;
-            const opId = operatorId || this.config.defaultOperatorId;
-            const localRef = reference || `RLR_${Date.now()}`;
+            const { phone, amount, reference, skuId, country = 'MX' } = transaction;
 
-            console.log(`📞 [CSQ] Processing topup: ${phone} - ${amount} - Operator: ${opId}`);
+            // SKU ID is required (not operator ID)
+            // Telcel = 396, Amigo Sin Limites = 683, Internet Amigo = 684
+            const productSkuId = skuId || '396'; // Default to Telcel
 
-            // Step 1: Get parameters (to check if dynamic products needed)
-            let parametersResponse;
-            try {
-                parametersResponse = await this.makeRequest(
-                    'GET',
-                    `/pre-paid/recharge/parameters/${this.config.terminalId}/${opId}`
-                );
-            } catch (error) {
-                console.log(`⚠️  [CSQ] Parameters check failed, proceeding with direct purchase:`, error.message);
-            }
+            // Simple local reference format (numeric)
+            const localRef = reference || String(Date.now()).slice(-8);
 
-            // Step 2: If dynamic, get products first
-            if (parametersResponse?.items?.[0]?.dynamic) {
-                try {
-                    const productsResponse = await this.makeRequest(
-                        'GET',
-                        `/pre-paid/recharge/products/${this.config.terminalId}/${opId}/${phone}`
-                    );
-                    console.log(`[CSQ] Retrieved ${productsResponse?.items?.length || 0} products`);
-                } catch (error) {
-                    console.log(`⚠️  [CSQ] Products retrieval failed:`, error.message);
-                }
-            }
+            console.log(`📞 [CSQ] Processing topup: ${phone} - ${amount} MXN - SKU: ${productSkuId}`);
+
+            // Skip parameters/products check - we're using SKU ID directly
+            // (Parameters/products endpoints may not work with SKU ID)
 
             // Step 3: Purchase
+            // Format required by CSQ: localDateTime, account, amountToSendX100
             const purchasePayload = {
+                localDateTime: new Date().toISOString().slice(0, 19), // "2025-09-25T18:55:00"
                 account: phone,
-                amount: amount,
-                // Additional fields if needed from parameters response
+                amountToSendX100: Math.round(amount * 100) // 20 MXN = 2000
             };
 
             const purchaseResponse = await this.makeRequest(
                 'POST',
-                `/pre-paid/recharge/purchase/${this.config.terminalId}/${opId}/${localRef}`,
+                `/pre-paid/recharge/purchase/${this.config.terminalId}/${productSkuId}/${localRef}`,
                 purchasePayload
             );
 
@@ -200,15 +185,15 @@ class CSQProvider extends BaseProvider {
 
             // Parse CSQ response
             const result = purchaseResponse?.items?.[0];
-            const rc = result?.rc || result?.resultCode;
+            const rc = result?.resultcode || result?.resultCode || result?.rc;
 
             // Result code 10 = success (money moved)
             if (rc === 10 || rc === '10') {
                 return {
                     success: true,
                     provider: 'CSQ',
-                    providerTransactionId: result.transactionId || result.supplierToken,
-                    message: result.resultText || 'Top-up successful',
+                    providerTransactionId: result.supplierreference || result.transactionId || result.supplierToken,
+                    message: result.resultmessage || result.resultText || 'Top-up successful',
                     responseTime: responseTime,
                     responseCode: rc,
                     rawResponse: purchaseResponse
@@ -217,8 +202,8 @@ class CSQProvider extends BaseProvider {
                 return {
                     success: false,
                     provider: 'CSQ',
-                    providerTransactionId: result?.transactionId,
-                    message: result?.resultText || this.getErrorMessage(rc),
+                    providerTransactionId: result?.supplierreference || result?.transactionId,
+                    message: result?.resultmessage || result?.resultText || this.getErrorMessage(rc),
                     responseTime: responseTime,
                     responseCode: rc,
                     rawResponse: purchaseResponse
