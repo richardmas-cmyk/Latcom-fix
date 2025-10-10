@@ -117,6 +117,19 @@ class LatcomProvider extends BaseProvider {
                 console.log(`   Sending: ${amountToSend} MXN (no adjustment)`);
                 console.log(`   Product: ${productId} (open range)`);
 
+            } else if (LATCOM_MODE === 'XOOM_ONLY') {
+                // XOOM_ONLY MODE: Force XOOM product if it exists
+                const xoomAmounts = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 500];
+                if (xoomAmounts.includes(amount)) {
+                    productId = `XOOM_${amount}_MXN`;
+                    amountToSend = amount;
+                    console.log(`📦 [Latcom] XOOM_ONLY MODE - Using XOOM fixed product`);
+                    console.log(`   Product: ${productId}`);
+                    console.log(`   Sending: ${amountToSend} MXN`);
+                } else {
+                    throw new Error(`No XOOM product for ${amount} MXN. Available: 10,20,30,40,50,60,70,80,90,100,150,200,300,500`);
+                }
+
             } else if (LATCOM_MODE === 'VAT_ADJUSTED') {
                 // VAT ADJUSTED MODE: Always apply formula, always open range
                 productId = "TFE_MXN_20_TO_2000";
