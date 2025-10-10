@@ -99,38 +99,16 @@ class LatcomProvider extends BaseProvider {
 
             console.log(`📞 [Latcom] Processing topup: ${cleanPhone} - ${amount} ${currency}`);
 
-            // LATCOM VAT ADJUSTMENT LOGIC
-            // Latcom adds 16% VAT to all amounts
-            // For amounts 30+ MXN: Use open range product with VAT adjustment
-            // For 10, 20 MXN: Use XOOM fixed products (no adjustment - Latcom handles it)
+            // LATCOM OPEN RANGE - RAW TEST (NO VAT ADJUSTMENT)
+            // TESTING: Send exact amount with no formula to see what customer receives
 
-            const VAT_RATE = 0.16;
-            let productId;
-            let amountToSend;
+            let productId = "TFE_MXN_20_TO_2000";
+            let amountToSend = amount;
 
-            // XOOM fixed products for 10, 20 MXN (Latcom minimum is 20 MXN, so we can't use open range for these)
-            const xoomAmounts = [10, 20];
-
-            if (xoomAmounts.includes(amount)) {
-                // Use XOOM fixed product - no adjustment needed
-                productId = `XOOM_${amount}_MXN`;
-                amountToSend = amount;
-                console.log(`✅ [Latcom] Using XOOM fixed product: ${productId} (no VAT adjustment)`);
-                console.log(`   Sending: ${amountToSend} MXN → Customer receives: ${amount} MXN (fixed product)`);
-            } else if (amount >= 30) {
-                // Use open range product with VAT adjustment
-                // Formula: send_mxn = face_mxn / (1 + VAT_RATE)
-                amountToSend = parseFloat((amount / (1 + VAT_RATE)).toFixed(2));
-                productId = "TFE_MXN_20_TO_2000";
-
-                console.log(`💱 [Latcom] VAT adjustment for open range:`);
-                console.log(`   Customer wants: ${amount} MXN`);
-                console.log(`   Send amount: ${amount} / 1.16 = ${amountToSend} MXN`);
-                console.log(`   Latcom adds 16% VAT: ${amountToSend} × 1.16 = ${(amountToSend * 1.16).toFixed(2)} MXN`);
-                console.log(`✅ [Latcom] Using open range product: ${productId}`);
-            } else {
-                throw new Error(`Amount ${amount} MXN not supported. Use 10, 20 MXN (XOOM) or 30+ MXN (open range)`);
-            }
+            console.log(`🧪 [Latcom] TEST MODE - Sending RAW amount (no VAT adjustment)`);
+            console.log(`   Sending: ${amountToSend} MXN straight to Latcom`);
+            console.log(`   Product: ${productId}`);
+            console.log(`   Let's see what customer receives...`)
 
             const requestBody = {
                 targetMSISDN: cleanPhone,
