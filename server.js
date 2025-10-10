@@ -645,13 +645,30 @@ app.post('/api/enviadespensa/topup',
         
         if (custResult.rows.length === 0) {
             await client.query('ROLLBACK');
-            return res.status(401).json({ 
-                success: false, 
-                error: 'Invalid API credentials' 
+            return res.status(401).json({
+                success: false,
+                error: 'Invalid API credentials'
             });
         }
-        
+
         const customer = custResult.rows[0];
+
+        // Restrict ENVIADESPENSA to fixed XOOM products only (no open range)
+        if (customerId === 'ENVIADESPENSA_001') {
+            const ALLOWED_XOOM_AMOUNTS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 500];
+            const requestedAmount = parseFloat(amount);
+
+            if (!ALLOWED_XOOM_AMOUNTS.includes(requestedAmount)) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid product amount',
+                    message: 'Only fixed XOOM products are allowed',
+                    allowed_amounts: ALLOWED_XOOM_AMOUNTS,
+                    requested_amount: requestedAmount
+                });
+            }
+        }
 
         // Check daily transaction limit
         const dailyTotalResult = await client.query(`
