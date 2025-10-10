@@ -99,16 +99,57 @@ class LatcomProvider extends BaseProvider {
 
             console.log(`📞 [Latcom] Processing topup: ${cleanPhone} - ${amount} ${currency}`);
 
-            // LATCOM OPEN RANGE - RAW TEST (NO VAT ADJUSTMENT)
-            // TESTING: Send exact amount with no formula to see what customer receives
+            // LATCOM MODE SWITCHER
+            // Control behavior via LATCOM_MODE environment variable
+            // Modes: RAW, VAT_ADJUSTED, HYBRID
+            const LATCOM_MODE = process.env.LATCOM_MODE || 'HYBRID';
+            const VAT_RATE = 0.16;
+            let productId;
+            let amountToSend;
 
-            let productId = "TFE_MXN_20_TO_2000";
-            let amountToSend = amount;
+            console.log(`🔧 [Latcom] Mode: ${LATCOM_MODE}`);
 
-            console.log(`🧪 [Latcom] TEST MODE - Sending RAW amount (no VAT adjustment)`);
-            console.log(`   Sending: ${amountToSend} MXN straight to Latcom`);
-            console.log(`   Product: ${productId}`);
-            console.log(`   Let's see what customer receives...`)
+            if (LATCOM_MODE === 'RAW') {
+                // RAW MODE: Send exact amount with open range, no adjustment
+                productId = "TFE_MXN_20_TO_2000";
+                amountToSend = amount;
+                console.log(`📤 [Latcom] RAW MODE - Sending exact amount`);
+                console.log(`   Sending: ${amountToSend} MXN (no adjustment)`);
+                console.log(`   Product: ${productId} (open range)`);
+
+            } else if (LATCOM_MODE === 'VAT_ADJUSTED') {
+                // VAT ADJUSTED MODE: Always apply formula, always open range
+                productId = "TFE_MXN_20_TO_2000";
+                amountToSend = parseFloat((amount / (1 + VAT_RATE)).toFixed(2));
+                console.log(`💱 [Latcom] VAT ADJUSTED MODE`);
+                console.log(`   Customer wants: ${amount} MXN`);
+                console.log(`   Formula: ${amount} / 1.16 = ${amountToSend} MXN`);
+                console.log(`   Latcom adds 16%: ${amountToSend} × 1.16 = ${(amountToSend * 1.16).toFixed(2)} MXN`);
+                console.log(`   Product: ${productId} (open range)`);
+
+            } else if (LATCOM_MODE === 'HYBRID') {
+                // HYBRID MODE: XOOM for 10,20 + VAT adjustment for 30+
+                const xoomAmounts = [10, 20];
+
+                if (xoomAmounts.includes(amount)) {
+                    productId = `XOOM_${amount}_MXN`;
+                    amountToSend = amount;
+                    console.log(`✅ [Latcom] HYBRID MODE - XOOM fixed product`);
+                    console.log(`   Product: ${productId}`);
+                    console.log(`   Sending: ${amountToSend} MXN (no adjustment)`);
+                } else if (amount >= 30) {
+                    productId = "TFE_MXN_20_TO_2000";
+                    amountToSend = parseFloat((amount / (1 + VAT_RATE)).toFixed(2));
+                    console.log(`💱 [Latcom] HYBRID MODE - Open range with VAT adjustment`);
+                    console.log(`   Formula: ${amount} / 1.16 = ${amountToSend} MXN`);
+                    console.log(`   Product: ${productId} (open range)`);
+                } else {
+                    throw new Error(`Amount ${amount} MXN not supported in HYBRID mode. Use 10, 20, or 30+ MXN`);
+                }
+
+            } else {
+                throw new Error(`Invalid LATCOM_MODE: ${LATCOM_MODE}. Use RAW, VAT_ADJUSTED, or HYBRID`);
+            }
 
             const requestBody = {
                 targetMSISDN: cleanPhone,
