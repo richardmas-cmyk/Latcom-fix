@@ -153,6 +153,7 @@ class CSQProvider extends BaseProvider {
         }
 
         try {
+            console.log('[CSQ] Received transaction:', JSON.stringify(transaction));
             const { phone, amount, reference, skuId, country = 'MX' } = transaction;
 
             // SKU ID is required (not operator ID)

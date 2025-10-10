@@ -727,7 +727,7 @@ app.post('/api/enviadespensa/topup',
         let providerResult;
         const startTime = Date.now();
         try {
-            providerResult = await providerRouter.processTopup({
+            const topupRequest = {
                 phone: phone,
                 amount: amount,
                 reference: reference || transactionId,
@@ -735,7 +735,14 @@ app.post('/api/enviadespensa/topup',
                 currency: 'MXN',
                 preferredProvider: provider,  // Use specific provider if requested
                 enableFailover: true  // Enable automatic failover to backup providers
-            });
+            };
+
+            // Add SKU ID for CSQ provider (Telcel = 396, Amigo = 683, Internet = 684)
+            if (provider && provider.toUpperCase() === 'CSQ') {
+                topupRequest.skuId = '396'; // Default to Telcel
+            }
+
+            providerResult = await providerRouter.processTopup(topupRequest);
         } catch (error) {
             const responseTime = Date.now() - startTime;
             await client.query(
