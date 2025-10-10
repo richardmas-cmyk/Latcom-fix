@@ -270,6 +270,11 @@ app.get('/health', async (req, res) => {
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
             mode: dbConnected ? 'PRODUCTION' : 'TEST_MODE',
+            instance: {
+                id: process.env.RAILWAY_REPLICA_ID || process.env.HOSTNAME || 'local',
+                memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+                pid: process.pid
+            },
             services: {}
         };
 
@@ -1601,6 +1606,40 @@ app.get('/api/admin/alert-status', async (req, res) => {
         consecutive_failures: alertSystem.consecutiveFailures,
         active_balance_alerts: Object.keys(alertSystem.lastBalanceAlerts).length
     });
+});
+
+// Get queue statistics (Admin only) - Phase 2
+app.get('/api/admin/queue-stats', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    try {
+        if (!queueProcessor.isAvailable()) {
+            return res.json({
+                success: true,
+                enabled: false,
+                message: 'Queue system not configured'
+            });
+        }
+
+        const stats = await queueProcessor.getQueueStats();
+
+        res.json({
+            success: true,
+            enabled: true,
+            stats,
+            message: 'Queue operational'
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
 });
 
 // Delete invoice (Admin only)

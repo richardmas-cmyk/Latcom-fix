@@ -32,8 +32,9 @@ class QueueProcessor {
             // Initialize database pool
             this.pool = createPool();
 
-            // Set up queue processor
-            this.topupQueue.process(5, async (job) => {
+            // Set up queue processor with high concurrency for Phase 2
+            const concurrency = parseInt(process.env.QUEUE_CONCURRENCY || '20');
+            this.topupQueue.process(concurrency, async (job) => {
                 return await this.processTopup(job.data);
             });
 
@@ -51,7 +52,7 @@ class QueueProcessor {
             });
 
             this.initialized = true;
-            console.log('✅ Queue processor initialized - processing 5 concurrent jobs');
+            console.log(`✅ Queue processor initialized - processing ${concurrency} concurrent jobs`);
 
         } catch (error) {
             console.log('❌ Queue initialization error:', error.message);
