@@ -110,12 +110,23 @@ class LatcomProvider extends BaseProvider {
             console.log(`🔧 [Latcom] Mode: ${LATCOM_MODE}`);
 
             if (LATCOM_MODE === 'RAW') {
-                // RAW MODE: Send exact amount with open range, no adjustment
-                productId = "TFE_MXN_20_TO_2000";
+                // RAW MODE: Use XOOM if available, otherwise open range - always send exact amount
+                const xoomAmounts = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 500];
                 amountToSend = amount;
-                console.log(`📤 [Latcom] RAW MODE - Sending exact amount`);
-                console.log(`   Sending: ${amountToSend} MXN (no adjustment)`);
-                console.log(`   Product: ${productId} (open range)`);
+
+                if (xoomAmounts.includes(amount)) {
+                    // XOOM product available
+                    productId = `XOOM_${amount}_MXN`;
+                    console.log(`📤 [Latcom] RAW MODE - XOOM product`);
+                    console.log(`   Product: ${productId} (fixed)`);
+                    console.log(`   Sending: ${amountToSend} MXN (no adjustment)`);
+                } else {
+                    // Use open range for non-standard amounts
+                    productId = "TFE_MXN_20_TO_2000";
+                    console.log(`📤 [Latcom] RAW MODE - Open range product`);
+                    console.log(`   Product: ${productId} (open range)`);
+                    console.log(`   Sending: ${amountToSend} MXN (no adjustment)`);
+                }
 
             } else if (LATCOM_MODE === 'XOOM_ONLY') {
                 // XOOM_ONLY MODE: Force XOOM product if it exists
