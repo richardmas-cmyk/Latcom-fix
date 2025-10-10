@@ -2215,3 +2215,27 @@ testDatabase().then(() => {
         });
     });
 });
+
+// Debug CSQ endpoint
+app.post('/api/debug/csq-test', async (req, res) => {
+    const CSQProvider = require('./providers/csq-provider');
+    const csq = new CSQProvider();
+    
+    try {
+        const result = await csq.topup({
+            phone: '5527642763',
+            amount: 20,
+            skuId: '396'
+        });
+        
+        res.json({
+            success: result.success,
+            result: result
+        });
+    } catch (error) {
+        res.json({
+            success: false,
+            error: error.message
+        });
+    }
+});
