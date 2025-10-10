@@ -32,7 +32,7 @@ app.use(express.static('views'));
 // Rate limiters
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // 100 requests per window
+    max: 300, // 300 requests per window (increased for admin dashboards)
     message: { success: false, error: 'Too many requests, please try again later' },
     standardHeaders: true,
     legacyHeaders: false,

@@ -328,8 +328,8 @@
         if (ADMIN_KEY) {
             loadMetrics();
 
-            // Auto-refresh every 5 seconds
-            setInterval(loadMetrics, 5000);
+            // Auto-refresh every 15 seconds (reduced from 5s to prevent rate limiting)
+            setInterval(loadMetrics, 15000);
         } else {
             document.getElementById('recentTransactions').innerHTML =
                 '<tr><td colspan="7" style="text-align: center; color: red;">Admin access required</td></tr>';
