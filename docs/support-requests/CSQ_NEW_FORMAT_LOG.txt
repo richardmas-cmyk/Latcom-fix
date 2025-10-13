@@ -1,0 +1,48 @@
+Ariadna,
+
+Tienes razón - ese log era del formato VIEJO (antes de tu respuesta).
+
+Aquí está el log con el NUEVO formato que me enviaste:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+REQUEST (CON NUEVO FORMATO):
+
+Method: POST
+URL: https://evsbus.csqworld.com/pre-paid/recharge/purchase/180167/1/TEST_1760122443341
+
+Headers:
+  U: host.180167
+  ST: 1760122443
+  SH: a9321c720e6ccf27d7ecbe86839afcf7b0f43bb278d5263290ba363417bdc4ad
+  Accept: application/json
+  Content-Type: application/json
+
+Body (NUEVO FORMATO):
+{
+  "localDateTime": "2025-10-10T18:54:03",
+  "account": "5527642763",
+  "amountToSendX100": 2000
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RESPONSE:
+
+Status: 400 Bad Request
+Body:
+{
+  "timestamp": "2025-10-10T18:54:03.505+00:00",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "",
+  "path": "/pre-paid/recharge/purchase/180167/1/TEST_1760122443341"
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+¿El problema está en el operador ID "1" en la URL?
+
+En el endpoint de productos, veo que Telcel tiene skuid: 396
+
+¿Debería usar /180167/396/ en lugar de /180167/1/ ?

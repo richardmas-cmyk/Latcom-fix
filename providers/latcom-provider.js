@@ -92,7 +92,7 @@ class LatcomProvider extends BaseProvider {
         }
 
         try {
-            const { phone, amount, reference, currency = 'MXN', country = 'MEXICO' } = transaction;
+            const { phone, amount, reference, currency = 'USD', country = 'MEXICO' } = transaction;
 
             // Strip country code 52 if present
             const cleanPhone = phone.replace(/^\+?52/, '');

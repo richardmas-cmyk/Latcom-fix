@@ -1,0 +1,57 @@
+Asunto: Error 404 en endpoint /serve/obtain/serveList - Solicitud de activación
+
+Estimado equipo de soporte MUWE/SIPE LATAM,
+
+Estamos integrando la API de Bill Payment de MUWE y estamos recibiendo un error 404 al intentar acceder al endpoint de la lista de servicios.
+
+**Detalles de nuestra cuenta:**
+- Merchant ID: 880225000000152
+- Merchant Name: Monstertech SA de CV
+- App ID (OPM): 00152018863
+- Login: jdcastillo@latcom.co
+
+**Problema:**
+Al realizar una solicitud POST a `/serve/obtain/serveList` recibimos el siguiente error:
+
+```
+Status: 404
+Message: "您访问的页面不存在！" (La página que está accediendo no existe)
+```
+
+**URLs probadas:**
+- Test: https://test.sipelatam.mx/serve/obtain/serveList
+- Production: https://pay.sipelatam.mx/serve/obtain/serveList
+
+Ambas URLs devuelven el mismo error 404.
+
+**Detalles técnicos de nuestra solicitud:**
+- Endpoint: POST /serve/obtain/serveList
+- Parámetros enviados:
+  - merCode: 880225000000152
+  - payType: 101
+  - nonceStr: [generado correctamente]
+  - sign: [generado con algoritmo MD5 correcto usando la key de test]
+
+**Preguntas:**
+1. ¿Nuestra cuenta está completamente activada para acceder a la API?
+2. ¿Es necesario hacer whitelist de alguna IP específica?
+3. ¿El endpoint `/serve/obtain/serveList` es el correcto para obtener la lista de compañías disponibles?
+4. ¿Necesitamos alguna key adicional o configuración especial para ambiente de pruebas?
+5. ¿Existe alguna documentación actualizada sobre los endpoints disponibles?
+
+Tenemos la documentación de Apifox (https://apifox.com/apidoc/shared-7b284c45-1f31-4745-8032-d577c8ace9f8) pero parece que los endpoints no están disponibles para nuestra cuenta.
+
+**Firma MD5 de ejemplo generada:**
+- String antes de encriptar: `merCode=880225000000152&nonceStr=1760184361566&payType=101&key=ZtIPVopZCwxLiJgrs68MPgNOorWx9CzT`
+- Firma: `DF4D0FCE32BEE3857CB13EEF1A7859ED`
+
+Por favor, podrían verificar:
+- Si nuestra cuenta necesita activación adicional
+- Si hay alguna configuración pendiente por su lado
+- Cuál es la URL correcta para ambiente de pruebas
+
+Quedamos atentos a su respuesta para poder continuar con la integración.
+
+Saludos cordiales,
+Equipo Técnico Latcom
+

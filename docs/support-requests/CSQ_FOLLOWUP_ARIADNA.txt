@@ -1,0 +1,60 @@
+Hola Ariadna,
+
+Gracias por el formato! Ya actualicé la solicitud con el formato que me enviaste:
+
+{
+    "localDateTime": "2025-10-10T18:54:03",
+    "account": "5527642763",
+    "amountToSendX100": 2000
+}
+
+Sin embargo, todavía recibo el error 400 Bad Request.
+
+SOLICITUD COMPLETA:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+URL:
+https://evsbus.csqworld.com/pre-paid/recharge/purchase/180167/1/TEST_1760122443341
+
+Headers:
+{
+  "U": "host.180167",
+  "ST": "1760122443",
+  "SH": "a9321c720e6ccf27d7ecbe86839afcf7b0f43bb278d5263290ba363417bdc4ad",
+  "Accept": "application/json",
+  "Content-Type": "application/json"
+}
+
+Body:
+{
+  "localDateTime": "2025-10-10T18:54:03",
+  "account": "5527642763",
+  "amountToSendX100": 2000
+}
+
+RESPUESTA:
+{
+  "timestamp": "2025-10-10T18:54:03.505+00:00",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "",
+  "path": "/pre-paid/recharge/purchase/180167/1/TEST_1760122443341"
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PREGUNTAS:
+
+1. ¿El operador ID "1" en la URL es correcto para Telcel?
+   (En el endpoint de productos, Telcel tiene skuid: 396)
+
+2. ¿Hay algún otro campo requerido en el body que me falta?
+
+3. ¿El formato de localDateTime está correcto?
+   (Estoy usando: "2025-10-10T18:54:03")
+
+4. ¿Necesito incluir el skuid (396) en el body o en la URL?
+
+El balance está OK ($200 USD) y la autenticación funciona correctamente.
+
+Gracias por tu ayuda!

@@ -1,0 +1,123 @@
+================================================================================
+CSQ CUSTOMER SUPPORT - TECHNICAL ISSUE REPORT
+================================================================================
+
+Date: October 10, 2025
+Account: Terminal 180167 (host.180167)
+API: https://evsbus.csqworld.com
+
+================================================================================
+ISSUE SUMMARY
+================================================================================
+
+We are successfully authenticating with the CSQ API but receiving "400 Bad
+Request" errors when attempting to purchase mobile topups. All authentication
+and balance check endpoints work correctly, but the purchase endpoint fails.
+
+================================================================================
+WORKING ENDPOINTS
+================================================================================
+
+✅ PING TEST (Authentication)
+   Endpoint: GET /ping/relier-test
+   Result: SUCCESS - Authentication working correctly
+   Response: {"rc": 0, "echo": "relier-test", "ts": 1760115592984}
+
+✅ BALANCE CHECK
+   Endpoint: GET /external-point-of-sale/by-file/balances
+   Result: SUCCESS - Balance: $200 USD
+   Response: {"rc": 0, "items": [{"id": 180167, "balance": 200}]}
+
+✅ PARAMETERS CHECK
+   Endpoint: GET /pre-paid/recharge/parameters/180167/1
+   Result: SUCCESS
+   Response: {"rc": 0, "message": "OK", "dynamic": false, "parameters": [{"field": "account"}]}
+
+================================================================================
+FAILING ENDPOINT
+================================================================================
+
+❌ PURCHASE/TOPUP
+   Endpoint: POST /pre-paid/recharge/purchase/180167/1/{reference}
+   Result: FAIL - 400 Bad Request
+
+   REQUEST HEADERS:
+   - U: host.180167
+   - ST: {unix_timestamp}
+   - SH: {sha256_hash}
+   - Content-Type: application/json
+   - Accept: application/json
+
+   REQUEST BODY:
+   {
+     "account": "5527642763",
+     "amount": 20
+   }
+
+   ERROR RESPONSE:
+   {
+     "timestamp": "2025-10-10T16:59:53.301+00:00",
+     "status": 400,
+     "error": "Bad Request",
+     "message": "",
+     "path": "/pre-paid/recharge/purchase/180167/1/CSQ_TEST_1760115593138"
+   }
+
+================================================================================
+QUESTIONS FOR SUPPORT
+================================================================================
+
+1. Is our terminal (180167) activated for prepaid recharge purchases?
+
+2. Are there required fields missing from our purchase request body?
+
+3. Do we need to specify a product ID or SKU for the purchase?
+
+4. Is operator ID "1" correct for Telcel Mexico?
+
+5. Are there any specific formatting requirements for the phone number
+   (account field)?
+
+6. Do we need additional permissions or service activation on our terminal?
+
+================================================================================
+TESTING DETAILS
+================================================================================
+
+Test Phone Number: 5527642763 (Telcel Mexico)
+Test Amount: 20 MXN
+Operator ID: 1
+Terminal ID: 180167
+Country: Mexico
+
+We have followed the API flow documented:
+1. GET parameters → SUCCESS (returns account field required)
+2. POST purchase → FAILURE (400 Bad Request with no message)
+
+================================================================================
+REQUEST
+================================================================================
+
+Please advise:
+
+1. What is causing the 400 Bad Request error?
+2. What fields are required in the purchase request body?
+3. Do we need additional activation or configuration for terminal 180167?
+4. Is there a different operator ID we should use for Telcel?
+
+We have $200 USD in the account and are ready to process transactions as
+soon as this issue is resolved.
+
+================================================================================
+CONTACT INFORMATION
+================================================================================
+
+Company: Relier Hub
+Terminal: 180167
+Username: host.180167
+Email: [YOUR EMAIL]
+Phone: [YOUR PHONE]
+
+================================================================================
+
+Thank you for your assistance!

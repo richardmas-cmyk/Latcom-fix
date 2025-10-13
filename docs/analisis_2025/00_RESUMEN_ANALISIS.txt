@@ -1,0 +1,30 @@
+================================================================================
+ANÁLISIS TELEFÓNICA vs LATCOM - 2025
+================================================================================
+
+Fecha: 2025-10-10 11:51:58
+
+TRANSACCIONES TELEFÓNICA 2025: 90,912
+
+ARCHIVOS GENERADOS:
+  1. 01_COINCIDENCIAS_SUCCESS.csv
+     → 8,373 transacciones SUCCESS coincidentes
+
+  2. 02_COINCIDENCIAS_FAIL.csv
+     → 2,992 transacciones FAIL coincidentes
+
+  3. 03_TELEFONICA2_DISPARIDADES.csv
+     → 79,547 transacciones sin coincidencia exacta
+
+  4. 04_SUCCESS_TELEFONICA_FAIL_LATCOM.csv
+     → 800 transacciones con status diferente
+
+  5. 05_FAIL_TELEFONICA_SUCCESS_LATCOM.csv
+     → 0 transacciones con status diferente
+
+  6. 06_TELEFONICA3_SIN_COINCIDENCIA.csv
+     → 78,747 transacciones sin ninguna coincidencia
+
+  7. 07_SUCCESS_SIN_COINCIDENCIA_IMPACTO.csv
+     → 42,153 transacciones SUCCESS sin match
+     → Impacto: $7,282,907.38 USD

@@ -1,0 +1,224 @@
+================================================================================
+              CARTA DE DISPUTA - TRANSACCIONES NO RECONOCIDAS
+================================================================================
+
+Fecha: 10 de Octubre, 2025
+
+De: [Tu Empresa]
+Para: [Operador/Proveedor]
+Asunto: Disputa de Cargos por Transacciones No Comprobadas
+        Período: Septiembre 2023 - Diciembre 2024
+
+================================================================================
+                           RESUMEN EJECUTIVO
+================================================================================
+
+Después de realizar una auditoría exhaustiva de nuestros registros de 
+transacciones correspondientes al período de Septiembre 2023 a Diciembre 2024,
+hemos identificado discrepancias significativas entre las transacciones 
+reclamadas por su empresa y nuestros registros internos.
+
+CIFRAS PRINCIPALES:
+───────────────────────────────────────────────────────────────────────────
+Monto total reclamado:        $1,541,008.50 USD (130,032 transacciones)
+Monto verificado:                $25,889.00 USD (2,084 transacciones)
+Monto en disputa:             $1,515,119.50 USD (127,948 transacciones)
+Porcentaje en disputa:                98.3%
+───────────────────────────────────────────────────────────────────────────
+
+Esta discrepancia del 98% es INACEPTABLE y requiere investigación inmediata.
+
+================================================================================
+                      1. HALLAZGOS DE LA AUDITORÍA
+================================================================================
+
+1.1 TRANSACCIONES NO ENCONTRADAS
+─────────────────────────────────────────────────────────────────────────
+Cantidad:     124,168 transacciones
+Monto:        $1,467,322.50 USD
+Porcentaje:   95.5% del total reclamado
+
+ESTAS TRANSACCIONES NO EXISTEN EN NUESTRO SISTEMA.
+
+No se encontraron coincidencias por:
+  ✗ ID de transacción del proveedor
+  ✗ Número de teléfono + monto + fecha
+  ✗ Número de teléfono + monto (±3 días)
+
+CONCENTRACIÓN SOSPECHOSA EN Q4 2023:
+  • Octubre 2023:    18,518 transacciones ($229,932.50) - 14.9%
+  • Noviembre 2023:  18,170 transacciones ($224,043.00) - 14.6%
+  • Diciembre 2023:  17,348 transacciones ($215,122.00) - 14.0%
+  ──────────────────────────────────────────────────────────────────
+  TOTAL Q4 2023:     54,036 transacciones ($669,097.50) - 43.5%
+
+🚨 PREGUNTA CRÍTICA: ¿Por qué el 43.5% de transacciones no encontradas
+   están concentradas en solo 3 meses? ¿Hubo cambio de sistema?
+
+
+1.2 TRANSACCIONES FALLIDAS
+─────────────────────────────────────────────────────────────────────────
+Cantidad:     3,780 transacciones
+Monto:        $47,797.00 USD
+Status:       FAIL (Fallido)
+Error:        "Bolton is not allowed for tariff plan"
+
+ESTAS TRANSACCIONES FALLARON EN NUESTRO SISTEMA.
+
+Tenemos evidencia completa:
+  ✓ IDs de transacción
+  ✓ Códigos de error del proveedor
+  ✓ Timestamps
+  ✓ Mensajes de error
+
+CONCLUSIÓN: NO deben ser cobradas porque NUNCA se completaron.
+
+
+1.3 TRANSACCIONES VERIFICADAS
+─────────────────────────────────────────────────────────────────────────
+Cantidad:     2,084 transacciones
+Monto:        $25,889.00 USD
+Status:       SUCCESS (Exitoso)
+
+Estas son las ÚNICAS transacciones verificadas en ambos sistemas.
+
+ESTAMOS DISPUESTOS A PAGAR: $25,889.00 USD
+
+================================================================================
+                       2. DESGLOSE FINANCIERO
+================================================================================
+
+┌─────────────────────────────────────────────────────────────────────┐
+│                     RESUMEN DE CARGOS                               │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  Reclamo Total del Operador:         $1,541,008.50 USD             │
+│                                                                     │
+│  ✅ MONTO ACEPTADO:                     $25,889.00 USD             │
+│     (2,084 transacciones verificadas)                               │
+│                                                                     │
+│  ❌ MONTO EN DISPUTA:                                              │
+│                                                                     │
+│     No Encontradas:     $1,467,322.50  (124,168 transacciones)     │
+│     Fallidas:              $47,797.00  (3,780 transacciones)        │
+│     ─────────────────────────────────────────────────              │
+│     TOTAL DISPUTADO:    $1,515,119.50 USD                          │
+│                                                                     │
+│  💰 AHORRO POTENCIAL:    $1,515,119.50 USD                         │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+
+================================================================================
+                    3. SOLICITUDES FORMALES
+================================================================================
+
+Para resolver esta disputa, SOLICITAMOS FORMALMENTE:
+
+3.1 DOCUMENTACIÓN DETALLADA
+
+    □ Logs completos de las 124,168 transacciones "no encontradas"
+      Debe incluir: ID, teléfono, fecha/hora, monto, respuesta
+
+    □ Explicación del Q4 2023
+      ¿Por qué hay 43.5% de transacciones concentradas en 3 meses?
+      ¿Hubo cambio de sistema en Octubre 2023?
+
+    □ Evidencia de las 3,780 transacciones "fallidas"
+      Nuestro sistema muestra "Bolton not allowed"
+      Necesitamos prueba de que se completaron exitosamente
+
+3.2 AUDITORÍA CONJUNTA
+
+    Proponemos reunión para:
+    • Revisar registros de ambas partes
+    • Identificar causa de discrepancia del 98%
+    • Establecer protocolo de reconciliación
+
+3.3 AJUSTE DE FACTURACIÓN
+
+    MONTO A PAGAR:           $25,889.00 USD ✅
+    CRÉDITO POR DISPUTA:  $1,515,119.50 USD ⏳
+
+================================================================================
+                        4. EVIDENCIA ADJUNTA
+================================================================================
+
+Adjuntamos los siguientes archivos CSV con evidencia completa:
+
+  1. ENHANCED_SUMMARY_[fecha].txt
+     → Resumen ejecutivo de la auditoría
+
+  2. ENHANCED_SUCCESSFUL_[fecha].csv
+     → 2,084 transacciones verificadas (las que SÍ pagaremos)
+
+  3. ENHANCED_FAILED_[fecha].csv
+     → 3,780 transacciones fallidas con códigos de error
+
+  4. ENHANCED_NOT_FOUND_[fecha].csv
+     → 124,168 transacciones que NO existen en nuestro sistema
+
+  5. NOT_FOUND_BY_MONTH_[fecha].csv
+     → Análisis temporal mostrando concentración en Q4 2023
+
+  6. ENHANCED_ALL_RESULTS_[fecha].csv
+     → Base de datos completa con todos los resultados
+
+================================================================================
+                        5. PLAZO DE RESPUESTA
+================================================================================
+
+PLAZO: 15 días hábiles desde recepción de esta carta
+
+Si NO recibimos respuesta satisfactoria o documentación solicitada, 
+nos reservamos el derecho de:
+
+  1. Retener pago de montos en disputa
+  2. Solicitar auditoría externa independiente
+  3. Escalar a autoridades regulatorias
+  4. Iniciar acciones legales
+
+================================================================================
+                           6. CONCLUSIÓN
+================================================================================
+
+La discrepancia del 98.3% es GRAVE y sugiere:
+  • Problema sistémico en sus registros
+  • Duplicación de reclamos
+  • Uso de sistema/formato diferente
+  • Error en migración de datos
+
+NO PODEMOS ACEPTAR cargos por transacciones que:
+  ❌ No existen en nuestro sistema (95.5%)
+  ❌ Fallaron con códigos de error documentados (2.9%)
+
+ÚNICO MONTO ACEPTABLE: $25,889.00 USD
+
+Estamos dispuestos a colaborar, pero REQUERIMOS:
+  ✓ Evidencia clara de las transacciones reclamadas
+  ✓ Explicación de la concentración en Q4 2023
+  ✓ Auditoría conjunta
+
+================================================================================
+                            CONTACTO
+================================================================================
+
+Para coordinar auditoría o resolver dudas:
+
+Nombre:    [Tu Nombre]
+Cargo:     [Tu Cargo]
+Email:     [Tu Email]
+Teléfono:  [Tu Teléfono]
+
+================================================================================
+
+Atentamente,
+
+[Tu Nombre]
+[Tu Cargo]
+[Tu Empresa]
+
+Fecha: 10 de Octubre, 2025
+
+================================================================================
+                           FIN DEL DOCUMENTO
+================================================================================

@@ -2,6 +2,8 @@ const LatcomProvider = require('./latcom-provider');
 const PPNProvider = require('./ppn-provider');
 const CSQProvider = require('./csq-provider');
 const MUWEProvider = require('./muwe-provider');
+const PaymentsMexicoProvider = require('./payments-mexico-provider');
+const MockProvider = require('./mock-provider');
 
 /**
  * Provider Router
@@ -9,18 +11,30 @@ const MUWEProvider = require('./muwe-provider');
  */
 class ProviderRouter {
     constructor() {
-        // Initialize all providers
-        this.providers = {
-            latcom: new LatcomProvider(),
-            ppn: new PPNProvider(),
-            csq: new CSQProvider(),
-            muwe: new MUWEProvider()
-        };
+        // Check if in test mode
+        this.testMode = process.env.TEST_MODE === 'true' || process.env.NODE_ENV === 'staging';
+
+        if (this.testMode) {
+            console.log('🧪 TEST MODE ENABLED - Using mock provider');
+            // In test mode, only use mock provider
+            this.providers = {
+                mock: new MockProvider()
+            };
+        } else {
+            // Initialize all real providers
+            this.providers = {
+                latcom: new LatcomProvider(),
+                ppn: new PPNProvider(),
+                csq: new CSQProvider(),
+                muwe: new MUWEProvider(),
+                paymentsmexico: new PaymentsMexicoProvider()
+            };
+        }
 
         // Default routing preferences
         this.preferences = {
-            // Mexico topups: Latcom first (better rates), fallback to PPN, then MUWE
-            mexico_topup: ['latcom', 'ppn', 'muwe'],
+            // Mexico topups: Latcom first (better rates), fallback to PPN, then MUWE, then Payments Mexico
+            mexico_topup: ['latcom', 'ppn', 'muwe', 'paymentsmexico'],
             // International topups: PPN (global coverage)
             international_topup: ['ppn', 'csq'],
             // Bill payments: MUWE first (100+ billers), fallback to CSQ, then PPN
@@ -149,6 +163,13 @@ class ProviderRouter {
      */
     async processTopup(transaction) {
         const { country = 'MEXICO', enableFailover = true, preferredProvider } = transaction;
+
+        // If in test mode, always use mock provider
+        if (this.testMode) {
+            console.log(`🧪 [Router] TEST MODE - Using mock provider`);
+            const result = await this.providers.mock.topup(transaction);
+            return result;
+        }
 
         // If specific provider requested, use ONLY that provider (no failover)
         if (preferredProvider) {

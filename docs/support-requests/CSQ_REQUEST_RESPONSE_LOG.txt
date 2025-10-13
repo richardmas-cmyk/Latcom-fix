@@ -1,0 +1,123 @@
+
+CSQ API - REQUEST AND RESPONSE LOG
+
+Terminal: 180167
+Date: October 10, 2025
+Test Phone: 5527642763 (Telcel México)
+
+
+PRODUCTS QUERY (SUCCESSFUL)
+
+
+REQUEST:
+  Method: GET
+  URL: https://evsbus.csqworld.com/article/view-set/saleconditions/customer-config/180167/0
+  Headers:
+    U: host.180167
+    ST: 1760118152
+    SH: 53b2a883b290a7f45ab26953e411d621b779eea15f1cee6cb7bb566998852844
+    Accept: application/json
+    Content-Type: application/json
+
+RESPONSE:
+  Status: 200 OK
+  Body:
+  {
+    "rc": 0,
+    "items": [
+      {
+        "id": 80965,
+        "skuid": 396,
+        "operator": "Telcel",
+        "country": "México",
+        "topuptype": "Telephone",
+        "msisdnmask": "52##########",
+        "availabledenominationscents": "1000, 2000, 3000, 5000, 8000, 10000, 15000, 20000, 30000, 50000",
+        "ex": 10,
+        "exunits": "MXN/MXN",
+        "discout": 0.1,
+        "countryid": 484
+      },
+      {
+        "id": 80966,
+        "skuid": 683,
+        "operator": "Amigo Sin Limites",
+        "country": "México",
+        "topuptype": "Telephone",
+        "msisdnmask": null,
+        "availabledenominationscents": "1000, 2000, 3000, 5000, 8000, 10000, 15000, 20000, 27000, 30000, 40000, 50000, 120000, 240000",
+        "ex": 10,
+        "exunits": "MXN/MXN",
+        "discout": 0.1,
+        "countryid": 484
+      },
+      {
+        "id": 80967,
+        "skuid": 684,
+        "operator": "Internet Amigo",
+        "country": "México",
+        "topuptype": "Telephone",
+        "msisdnmask": null,
+        "availabledenominationscents": "2000, 3000, 5000, 8000, 10000, 15000, 20000, 30000, 50000",
+        "ex": 10,
+        "exunits": "MXN/MXN",
+        "discout": 0.1,
+        "countryid": 484
+      }
+    ]
+  }
+
+
+PURCHASE REQUEST (FAILED - 400 BAD REQUEST)
+
+
+REQUEST:
+  Method: POST
+  URL: https://evsbus.csqworld.com/pre-paid/recharge/purchase/180167/1/CSQ_TEST_1760118152239
+  Headers:
+    U: host.180167
+    ST: 1760118152
+    SH: 53b2a883b290a7f45ab26953e411d621b779eea15f1cee6cb7bb566998852844
+    Accept: application/json
+    Accept-Encoding: gzip
+    Content-Type: application/json
+    X-Real-Ip: 0.0.0.0
+    Cache-Hash: 0
+    Agent: Relier-Hub/1.0
+
+  Body:
+  {
+    "account": "5527642763",
+    "amount": 20
+  }
+
+RESPONSE:
+  Status: 400 Bad Request
+  Body:
+  {
+    "timestamp": "2025-10-10T17:42:32.585+00:00",
+    "status": 400,
+    "error": "Bad Request",
+    "message": "",
+    "path": "/pre-paid/recharge/purchase/180167/1/CSQ_TEST_1760118152239"
+  }
+
+
+
+Based on the products endpoint, I can see:
+- Telcel has skuid: 396
+- Available denominations in cents: 1000, 2000, 3000, 5000, etc.
+
+For a 20 MXN Telcel topup, should the purchase request include:
+1. The skuid (396)?
+2. The amount in cents (2000)?
+3. Any other fields?
+
+Current request body that fails:
+{
+  "account": "5527642763",
+  "amount": 20
+}
+
+What should the correct request body be?
+

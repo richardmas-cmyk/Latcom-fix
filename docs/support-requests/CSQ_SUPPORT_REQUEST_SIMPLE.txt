@@ -1,0 +1,28 @@
+Estimada Ariadna,
+
+Muchas gracias por las credenciales de producción que nos enviaste ayer.
+
+Hemos configurado exitosamente la conexión con la API de CSQ:
+✅ Autenticación: Funcionando
+✅ Consulta de saldo: Funcionando ($200 USD disponible)
+
+Sin embargo, cuando intentamos hacer una recarga prepago, recibimos un error 400 (Bad Request).
+
+¿Podrías ayudarnos con lo siguiente?
+
+1. ¿Está activado nuestro terminal 180167 para hacer recargas prepago?
+
+2. ¿Qué operadores están disponibles para nuestro terminal?
+   (Queremos hacer recargas a Telcel México)
+
+3. ¿Podrías compartir un ejemplo de una solicitud exitosa de recarga prepago
+   para nuestro terminal?
+
+Estamos listos para empezar a procesar transacciones en cuanto resolvamos
+este detalle.
+
+Gracias por tu apoyo,
+
+[Tu nombre]
+Relier Hub
+Terminal: 180167

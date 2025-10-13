@@ -1,0 +1,70 @@
+Hola Ariadna,
+
+Tienes razón - ese log que viste era del formato VIEJO, de antes de que me enviaras el formato correcto.
+
+Ya actualicé el código con el formato que me compartiste. Aquí está el nuevo log:
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SOLICITUD CON EL NUEVO FORMATO (localDateTime + amountToSendX100)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Método: POST
+
+URL:
+https://evsbus.csqworld.com/pre-paid/recharge/purchase/180167/1/TEST_1760122443341
+
+Headers:
+{
+  "U": "host.180167",
+  "ST": "1760122443",
+  "SH": "a9321c720e6ccf27d7ecbe86839afcf7b0f43bb278d5263290ba363417bdc4ad",
+  "Accept": "application/json",
+  "Content-Type": "application/json"
+}
+
+Body (FORMATO NUEVO):
+{
+  "localDateTime": "2025-10-10T18:54:03",
+  "account": "5527642763",
+  "amountToSendX100": 2000
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RESPUESTA DEL SERVIDOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Status: 400 Bad Request
+
+Body:
+{
+  "timestamp": "2025-10-10T18:54:03.505+00:00",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "",
+  "path": "/pre-paid/recharge/purchase/180167/1/TEST_1760122443341"
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Como puedes ver, YA estoy usando el formato correcto:
+✓ localDateTime: "2025-10-10T18:54:03"
+✓ account: "5527642763"
+✓ amountToSendX100: 2000
+
+Pero sigo recibiendo el error 400.
+
+Mi pregunta: En la URL estoy usando "/180167/1/" donde "1" es el operador ID.
+
+Cuando consulté los productos disponibles, veo que Telcel tiene skuid: 396
+
+¿Debería usar el SKU ID en lugar del operador ID en la URL?
+
+Es decir:
+https://evsbus.csqworld.com/pre-paid/recharge/purchase/180167/396/REFERENCIA
+
+En lugar de:
+https://evsbus.csqworld.com/pre-paid/recharge/purchase/180167/1/REFERENCIA
+
+¿O hay algún otro problema que no estoy viendo?
+
+Gracias por tu paciencia!

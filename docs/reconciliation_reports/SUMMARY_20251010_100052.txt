@@ -1,0 +1,27 @@
+OPERATOR TRANSACTION RECONCILIATION SUMMARY
+================================================================================
+
+Report Date: 2025-10-10 10:00:53
+Period: September 2023 - December 2024
+
+OPERATOR CLAIMS:
+  Total transactions: 130,032
+  Total USD claimed: $1,541,008.50
+
+VERIFIED SUCCESSFUL (Amount you owe):
+  Transactions: 2,084
+  Total USD: $0.00
+
+DISPUTED - FAILED:
+  Transactions: 3,780
+  Total USD: $0.00
+
+DISPUTED - NOT FOUND:
+  Transactions: 124,168
+  Total USD: $1,467,322.50
+
+BOTTOM LINE:
+  Operator claims: $1,541,008.50
+  You actually owe: $0.00
+  Disputed amount: $1,467,322.50
+  Savings: $1,467,322.50

@@ -653,6 +653,23 @@ app.post('/api/enviadespensa/topup',
 
         const customer = custResult.rows[0];
 
+        // Check IP whitelist if enabled for this customer
+        if (customer.ip_whitelist_enabled && customer.allowed_ips) {
+            const clientIP = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            const allowedIPs = customer.allowed_ips; // JSONB array
+
+            if (!allowedIPs.includes(clientIP)) {
+                await client.query('ROLLBACK');
+                console.log(`🚫 IP ${clientIP} not whitelisted for customer ${customerId}`);
+                return res.status(403).json({
+                    success: false,
+                    error: 'IP address not authorized',
+                    your_ip: clientIP
+                });
+            }
+            console.log(`✅ IP ${clientIP} verified for customer ${customerId}`);
+        }
+
         // Restrict ENVIADESPENSA to fixed XOOM products only (no open range)
         if (customerId === 'ENVIADESPENSA_001') {
             const ALLOWED_XOOM_AMOUNTS = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 500];

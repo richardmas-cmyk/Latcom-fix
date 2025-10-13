@@ -8,6 +8,7 @@ const LatcomProvider = require('./latcom-provider');
 const PPNProvider = require('./ppn-provider');
 const CSQProvider = require('./csq-provider');
 const MUWEProvider = require('./muwe-provider');
+const PaymentsMexicoProvider = require('./payments-mexico-provider');
 const BaseProvider = require('./base-provider');
 
 // Create singleton router instance
@@ -22,6 +23,7 @@ module.exports = {
     PPNProvider,
     CSQProvider,
     MUWEProvider,
+    PaymentsMexicoProvider,
     BaseProvider,
 
     // Convenience exports

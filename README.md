@@ -6,6 +6,23 @@ Built for high-volume transaction processing with real-time billing and credit m
 
 ---
 
+## 🚨 CLAUDE AI SESSIONS - START HERE!
+
+**👉 If starting a new Claude session, READ THIS FIRST: [`PROJECT_CONTEXT.md`](./PROJECT_CONTEXT.md) 👈**
+
+This context file explains:
+- ✅ All providers are already configured and working on **RAILWAY** (production)
+- ❌ Local environment has NO credentials (test mode only)
+- ✅ How to test real transactions (use Railway production API)
+- ✅ Current project status and what's working
+- ✅ Railway commands and deployment info
+
+**Also read:** [`PROVIDER_SUMMARY.md`](./PROVIDER_SUMMARY.md) - Complete list of all 9 provider integrations
+
+**Key Point:** Production credentials are ONLY on Railway. DON'T use `railway run` (uses local IP). Test via Railway production API instead.
+
+---
+
 ## 🎯 Quick Links
 
 | Resource | URL | Description |
