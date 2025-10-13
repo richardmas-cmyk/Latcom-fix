@@ -1027,7 +1027,74 @@ app.get('/api/queue/stats', async (req, res) => {
 // Admin endpoint to add credit
 app.post('/api/admin/add-credit', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    const { customer_id, amount } = req.body;
+    const { customer_id, amount, reason } = req.body;
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not available' });
+    }
+
+    const client = await pool.connect();
+
+    try {
+        await client.query('BEGIN');
+
+        // Get current balance
+        const customerResult = await client.query(
+            'SELECT current_balance, company_name FROM customers WHERE customer_id = $1',
+            [customer_id]
+        );
+
+        if (customerResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ success: false, error: 'Customer not found' });
+        }
+
+        const balanceBefore = parseFloat(customerResult.rows[0].current_balance);
+        const balanceAfter = balanceBefore + parseFloat(amount);
+
+        // Update balance
+        await client.query(
+            'UPDATE customers SET current_balance = current_balance + $1 WHERE customer_id = $2',
+            [amount, customer_id]
+        );
+
+        // Log the adjustment
+        await client.query(
+            `INSERT INTO balance_adjustments
+            (customer_id, amount, balance_before, balance_after, reason, adjusted_by)
+            VALUES ($1, $2, $3, $4, $5, $6)`,
+            [customer_id, amount, balanceBefore, balanceAfter, reason || 'Manual adjustment', 'ADMIN']
+        );
+
+        await client.query('COMMIT');
+
+        // Invalidate cache
+        await redisCache.invalidateBalance(customer_id);
+
+        console.log(`💰 Balance adjustment: ${customer_id} ${amount >= 0 ? '+' : ''}$${amount} USD (${balanceBefore.toFixed(2)} → ${balanceAfter.toFixed(2)})`);
+
+        res.json({
+            success: true,
+            message: 'Balance updated successfully',
+            balance_before: balanceBefore,
+            balance_after: balanceAfter
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ success: false, error: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// Get balance adjustment history (Admin only)
+app.get('/api/admin/balance-history', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    const { customer_id, limit = 100 } = req.query;
 
     if (adminKey !== process.env.ADMIN_KEY) {
         return res.status(401).json({ success: false, error: 'Unauthorized' });
@@ -1038,15 +1105,29 @@ app.post('/api/admin/add-credit', async (req, res) => {
     }
 
     try {
-        await pool.query(
-            'UPDATE customers SET current_balance = current_balance + $1 WHERE customer_id = $2',
-            [amount, customer_id]
-        );
+        let query = `
+            SELECT ba.*, c.company_name
+            FROM balance_adjustments ba
+            LEFT JOIN customers c ON ba.customer_id = c.customer_id
+        `;
 
-        // Invalidate cache
-        await redisCache.invalidateBalance(customer_id);
+        const params = [];
 
-        res.json({ success: true, message: 'Credit added successfully' });
+        if (customer_id) {
+            query += ' WHERE ba.customer_id = $1';
+            params.push(customer_id);
+        }
+
+        query += ' ORDER BY ba.created_at DESC LIMIT $' + (params.length + 1);
+        params.push(parseInt(limit));
+
+        const result = await pool.query(query, params);
+
+        res.json({
+            success: true,
+            adjustments: result.rows,
+            count: result.rows.length
+        });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
