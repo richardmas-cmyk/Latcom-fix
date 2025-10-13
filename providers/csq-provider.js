@@ -166,15 +166,29 @@ class CSQProvider extends BaseProvider {
 
             console.log(`📞 [CSQ] Processing topup: ${phone} - ${amount} MXN - SKU: ${productSkuId}`);
 
-            // Skip parameters/products check - we're using SKU ID directly
-            // (Parameters/products endpoints may not work with SKU ID)
+            // Step 1: Get Parameters (Required for proper flow, especially DummyTopup)
+            // This step validates the operator and returns required fields
+            try {
+                console.log('[CSQ] Step 1: Getting parameters...');
+                const parametersResponse = await this.makeRequest(
+                    'GET',
+                    `/pre-paid/recharge/parameters/${this.config.terminalId}/${productSkuId}`
+                );
+                console.log('[CSQ] Parameters response:', JSON.stringify(parametersResponse, null, 2));
+            } catch (paramError) {
+                console.log('[CSQ] Parameters call failed (may be optional for some products):', paramError.message);
+                // Continue anyway - some products may not require parameters
+            }
 
-            // Step 3: Purchase
+            // Step 2: Purchase
             // Format required by CSQ: localDateTime, account, amountToSendX100
+            // amountToSendX100 = amount in CENTS (for USD products)
+            // For DummyTopup and other USD products: 5 USD = 500 cents
+            // Note: Amount parameter here should already be in the correct currency units
             const purchasePayload = {
                 localDateTime: new Date().toISOString().slice(0, 19), // "2025-09-25T18:55:00"
                 account: phone,
-                amountToSendX100: Math.round(amount * 100) // 20 MXN = 2000
+                amountToSendX100: Math.round(amount * 100) // Amount in cents (5 USD = 500)
             };
 
             const purchaseResponse = await this.makeRequest(
@@ -185,9 +199,15 @@ class CSQProvider extends BaseProvider {
 
             const responseTime = Date.now() - startTime;
 
+            // Log full response for debugging
+            console.log('[CSQ] Full Response:', JSON.stringify(purchaseResponse, null, 2));
+
             // Parse CSQ response
             const result = purchaseResponse?.items?.[0];
             const rc = result?.resultcode || result?.resultCode || result?.rc;
+
+            console.log('[CSQ] Parsed result:', result);
+            console.log('[CSQ] Result code:', rc);
 
             // Result code 10 = success (money moved)
             if (rc === 10 || rc === '10') {
@@ -475,11 +495,98 @@ class CSQProvider extends BaseProvider {
     }
 
     /**
-     * Get available products (not implemented in docs - placeholder)
+     * Get available products from CSQ terminal configuration
+     * Uses: GET /article/view-set/saleconditions/customer-config/{terminalId}/0
      */
     async getProducts(country = null) {
-        console.log('[CSQ] Get products - requires operator ID, use specific endpoints');
-        return [];
+        try {
+            // Use Token-based authentication instead of U/ST/SH for this endpoint
+            const token = process.env.CSQ_TOKEN || '4cdba8f37ecc5ba8994c6a23030c9d4b';
+
+            const response = await axios.get(
+                `https://evsbus.csqworld.com/article/view-set/saleconditions/customer-config/${this.config.terminalId}/0`,
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Token': token
+                    },
+                    timeout: 30000
+                }
+            );
+
+            if (response.data && response.data.items) {
+                const products = response.data.items.map(item => ({
+                    id: item.id,
+                    skuId: item.skuid,
+                    operator: item.operator,
+                    country: item.country,
+                    topupType: item.topuptype,
+                    denominations: item.availabledenominationscents,
+                    exchangeRate: item.ex,
+                    exchangeUnits: item.exunits,
+                    countryId: item.countryid,
+                    msisdnMask: item.msisdnmask
+                }));
+
+                console.log(`✅ [CSQ] Loaded ${products.length} products from terminal ${this.config.terminalId}`);
+
+                // Filter by country if requested
+                if (country) {
+                    return products.filter(p =>
+                        p.country.toLowerCase().includes(country.toLowerCase()) ||
+                        p.country === country
+                    );
+                }
+
+                return products;
+            }
+
+            return [];
+
+        } catch (error) {
+            console.error('❌ [CSQ] Get products error:', error.message);
+            return [];
+        }
+    }
+
+    /**
+     * Get product by SKU ID
+     */
+    async getProductBySkuId(skuId) {
+        const products = await this.getProducts();
+        return products.find(p => p.skuId === parseInt(skuId));
+    }
+
+    /**
+     * Get products for Mexico
+     */
+    async getMexicoProducts() {
+        return await this.getProducts('Mexico');
+    }
+
+    /**
+     * Get DummyTopup product (for testing)
+     * SKU ID: 9990
+     *
+     * IMPORTANT - DummyTopup Simulation Logic:
+     * - MUST call GET /parameters first, then POST /purchase
+     * - Last 3 digits of account determine the result code (rc):
+     *   - Account ending in "000" → rc=0 (success)
+     *   - Account ending in "001" → rc=971 (error)
+     *   - Account ending in "002" → rc=990 (error)
+     *   - Any other ending → rc=991 (default error)
+     *
+     * Examples:
+     *   - "600000000" → Success (rc=0)
+     *   - "600000001" → Error 971
+     *   - "600000002" → Error 990
+     *   - "556637468310" → Error 991 (default)
+     *
+     * See: https://csq-docs.apidog.io/doc-1259308
+     */
+    async getDummyTopupProduct() {
+        const products = await this.getProducts();
+        return products.find(p => p.skuId === 9990);
     }
 }
 

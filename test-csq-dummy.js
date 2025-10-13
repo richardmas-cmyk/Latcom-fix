@@ -1,89 +1,114 @@
 /**
- * Test CSQ with DummyTopup SKU
- * SKU 9990 - DummyTopup for testing
+ * Test CSQ DummyTopup Product
+ * Tests different account endings to verify error code handling
+ *
+ * DummyTopup (SKU 9990) behavior:
+ * - Last 2 digits of account determine the result code (rc)
+ * - Example: account ending in "10" returns rc=10 (success)
+ * - Example: account ending in "13" returns rc=13 (insufficient balance)
+ *
+ * Reference: https://csq-docs.apidog.io/doc-1259308
  */
 
 require('dotenv').config({ path: '.env.staging' });
-const axios = require('axios');
-const crypto = require('crypto');
-
-const config = {
-    baseUrl: process.env.CSQ_BASE_URL || 'https://evsbus.csqworld.com',
-    username: process.env.CSQ_USERNAME,
-    password: process.env.CSQ_PASSWORD,
-    terminalId: process.env.CSQ_TERMINAL_ID
-};
-
-console.log('Testing CSQ with DummyTopup (SKU 9990)...\n');
-
-function generateAuthHeaders() {
-    const ST = Math.floor(Date.now() / 1000).toString();
-    const pass_sha = crypto.createHash('sha256').update(config.password).digest('hex');
-    const salt_sha = crypto.createHash('sha256').update(ST).digest('hex');
-    const SH = crypto.createHash('sha256').update(pass_sha + salt_sha).digest('hex');
-
-    return {
-        'U': config.username,
-        'ST': ST,
-        'SH': SH,
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip',
-        'Content-Type': 'application/json',
-        'X-Real-Ip': '0.0.0.0',
-        'Cache-Hash': '0',
-        'Agent': 'Relier-Hub/1.0'
-    };
-}
+const CSQProvider = require('./providers/csq-provider');
 
 async function testDummyTopup() {
-    const phone = '5527642763';
-    const localRef = String(Date.now()).slice(-8);
+    console.log('🧪 Testing CSQ DummyTopup Product\n');
+    console.log('=' .repeat(80));
 
-    // Using DummyTopup SKU 9990
-    // Available: From 100 to 1000 cents (1 to 10 USD)
-    const payload = {
-        "localDateTime": new Date().toISOString().slice(0, 19),
-        "account": phone,
-        "amountToSendX100": 500  // 5 USD / 500 cents
-    };
+    const csq = new CSQProvider();
 
-    const url = `${config.baseUrl}/pre-paid/recharge/purchase/${config.terminalId}/9990/${localRef}`;
+    // Test 1: Get products
+    console.log('\n📦 Test 1: Fetching available products...\n');
+    const products = await csq.getProducts();
+    console.log(`✅ Found ${products.length} products`);
 
-    try {
-        console.log('Request:');
-        console.log('  SKU: 9990 (DummyTopup)');
-        console.log('  Phone:', phone);
-        console.log('  Amount: 5 USD (500 cents)');
-        console.log('  Reference:', localRef);
-        console.log('');
+    // Find DummyTopup
+    const dummyProduct = products.find(p => p.skuId === 9990);
+    if (dummyProduct) {
+        console.log('\n✅ DummyTopup product found:');
+        console.log('   SKU ID:', dummyProduct.skuId);
+        console.log('   Operator:', dummyProduct.operator);
+        console.log('   Country:', dummyProduct.country);
+        console.log('   Denominations:', dummyProduct.denominations);
+    } else {
+        console.log('❌ DummyTopup product (SKU 9990) not found in product list');
+        return;
+    }
 
-        const response = await axios({
-            method: 'POST',
-            url: url,
-            headers: generateAuthHeaders(),
-            data: payload,
-            timeout: 60000
-        });
+    // Find Mexico AT&T product
+    const attProduct = products.find(p => p.operator === 'AT&T Mexico');
+    if (attProduct) {
+        console.log('\n✅ AT&T Mexico product found:');
+        console.log('   SKU ID:', attProduct.skuId);
+        console.log('   Operator:', attProduct.operator);
+        console.log('   Denominations:', attProduct.denominations);
+    }
 
-        console.log('✅ Response:');
-        console.log(JSON.stringify(response.data, null, 2));
+    console.log('\n' + '='.repeat(80));
 
-        const result = response.data?.items?.[0];
-        if (result && (result.resultcode === 10 || result.resultcode === '10')) {
-            console.log('\n🎉 SUCCESS! Transaction completed!');
-            console.log('Provider TX ID:', result.supplierreference || result.suppliertoken);
-        } else {
-            console.log('\n⚠️  Transaction returned error code:', result?.resultcode);
-        }
+    // Test 2: DummyTopup with different account endings
+    console.log('\n📱 Test 2: Testing DummyTopup with different account endings\n');
+    console.log('⚠️  IMPORTANT: DummyTopup uses LAST 3 DIGITS to determine result:');
+    console.log('   - Ending in 000 → Success (rc=0)');
+    console.log('   - Ending in 001 → Error 971');
+    console.log('   - Ending in 002 → Error 990');
+    console.log('   - Any other → Error 991 (default)\n');
 
-    } catch (error) {
-        if (error.response) {
-            console.log('❌ Error:', error.response.status);
-            console.log(JSON.stringify(error.response.data, null, 2));
-        } else {
+    const testCases = [
+        { account: '5566374000', expectedRc: 0, expectedResult: 'SUCCESS', description: 'Success case (ends in 000)' },
+        { account: '5566374001', expectedRc: 971, expectedResult: 'FAIL', description: 'Error 971 (ends in 001)' },
+        { account: '5566374002', expectedRc: 990, expectedResult: 'FAIL', description: 'Error 990 (ends in 002)' },
+        { account: '5566374999', expectedRc: 991, expectedResult: 'FAIL', description: 'Default error (ends in 999)' }
+    ];
+
+    for (const testCase of testCases) {
+        console.log(`\nTest Case: ${testCase.description}`);
+        console.log(`Account: ${testCase.account} (ends in ${testCase.account.slice(-3)})`);
+        console.log(`Expected RC: ${testCase.expectedRc}`);
+        console.log(`Expected Result: ${testCase.expectedResult}`);
+        console.log('-'.repeat(60));
+
+        try {
+            const result = await csq.topup({
+                phone: testCase.account,
+                amount: 5, // $5 USD (500 cents)
+                skuId: '9990', // DummyTopup
+                country: 'US'
+            });
+
+            console.log('Response:', result.success ? '✅ SUCCESS' : '❌ FAILED');
+            console.log('Provider:', result.provider);
+            console.log('Response Code:', result.responseCode);
+            console.log('Message:', result.message);
+            console.log('Response Time:', result.responseTime + 'ms');
+
+            if (result.providerTransactionId) {
+                console.log('Transaction ID:', result.providerTransactionId);
+            }
+
+            // Verify expected result
+            if (result.responseCode == testCase.expectedRc) {
+                console.log('✅ Result code matches expected');
+            } else {
+                console.log(`⚠️  Result code mismatch: got ${result.responseCode}, expected ${testCase.expectedRc}`);
+            }
+
+        } catch (error) {
             console.log('❌ Error:', error.message);
         }
+
+        // Wait between requests
+        await new Promise(resolve => setTimeout(resolve, 2000));
     }
+
+    console.log('\n' + '='.repeat(80));
+    console.log('\n✅ Tests completed\n');
 }
 
-testDummyTopup().catch(console.error);
+// Run tests
+testDummyTopup().catch(error => {
+    console.error('❌ Test error:', error);
+    process.exit(1);
+});
