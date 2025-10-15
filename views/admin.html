@@ -450,13 +450,14 @@
                         <th>Phone</th>
                         <th>Amount (MXN)</th>
                         <th>Cost (USD)</th>
+                        <th>Provider</th>
                         <th>Status</th>
                         <th>TX ID</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="transactionsBody">
-                    <tr><td colspan="8" style="text-align: center;">Loading...</td></tr>
+                    <tr><td colspan="9" style="text-align: center;">Loading...</td></tr>
                 </tbody>
             </table>
 
@@ -595,13 +596,14 @@
             const tbody = document.getElementById('transactionsBody');
 
             if (page.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No transactions found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align: center;">No transactions found</td></tr>';
                 return;
             }
 
             tbody.innerHTML = page.map(t => {
                 const amountMXN = t.amount_mxn ? parseFloat(t.amount_mxn).toFixed(2) : parseFloat(t.amount || 0).toFixed(2);
                 const amountUSD = t.amount_usd ? parseFloat(t.amount_usd).toFixed(2) : parseFloat(t.amount || 0).toFixed(2);
+                const provider = t.provider ? t.provider.toUpperCase() : 'N/A';
 
                 return `
                     <tr>
@@ -610,6 +612,7 @@
                         <td>${t.phone}</td>
                         <td>${amountMXN} MXN</td>
                         <td>$${amountUSD} USD</td>
+                        <td><strong>${provider}</strong></td>
                         <td>${t.status}</td>
                         <td style="font-size: 0.85em;">${t.transaction_id}</td>
                         <td><button onclick="viewTransactionLog('${t.transaction_id}')" style="padding: 5px 10px; font-size: 0.9em;">View Log</button></td>
