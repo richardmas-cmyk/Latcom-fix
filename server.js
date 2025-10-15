@@ -17,7 +17,7 @@ const app = express();
 
 // Security constants - must be defined before use in validators
 const MAX_TOPUP_AMOUNT = 500; // MXN
-const DAILY_LIMIT_PER_CUSTOMER = 5000; // MXN
+const DAILY_LIMIT_PER_CUSTOMER = 200000; // MXN (supports ~$10,000 USD daily volume - $300K/month)
 
 // Request logging with morgan
 const accessLogStream = fs.createWriteStream(

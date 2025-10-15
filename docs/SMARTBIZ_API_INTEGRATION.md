@@ -28,10 +28,10 @@ Base URL (Production): https://latcom-fix-production.up.railway.app
 - **Starting Balance:** $200 USD
 - **Commission Rate:** 0% (can be adjusted)
 - **Currency:** Transactions in MXN, balance in USD
-- **Daily Limit:** 5,000 MXN per end-user per day
+- **Daily Limit:** 200,000 MXN per end-user per day (~$10,000 USD)
 - **Rate Limit:** 200 requests per minute
 
-**Note:** This is a testing account with a $200 limit. Once ready for production, the credit limit will be increased.
+**Note:** This is a testing account with a $200 limit. Once ready for production, the credit limit will be increased to support $300,000 USD monthly volume.
 
 ---
 
@@ -171,10 +171,10 @@ x-customer-id: SMARTBIZ_001
 {
   "success": false,
   "error": "Daily transaction limit exceeded",
-  "daily_limit_mxn": 5000,
-  "used_today_mxn": 4980,
-  "requested_mxn": 50,
-  "available_mxn": 20
+  "daily_limit_mxn": 200000,
+  "used_today_mxn": 199950,
+  "requested_mxn": 100,
+  "available_mxn": 50
 }
 ```
 
@@ -302,10 +302,10 @@ All transactions are in **MXN** but your balance is in **USD**.
 |------------|-------|
 | **API Requests** | 300 per 15 minutes |
 | **Topup Requests** | 200 per minute per customer |
-| **Daily Transaction Volume** | 5,000 MXN per end-user |
+| **Daily Transaction Volume** | 200,000 MXN per end-user (~$10,000 USD) |
 | **Single Transaction** | 10-500 MXN |
 
-**Note:** Daily limit is per end-user phone number, not per SmartBiz account.
+**Note:** Daily limit is per end-user phone number, not per SmartBiz account. This supports ~$300,000 USD monthly volume.
 
 ---
 
