@@ -32,19 +32,21 @@ class ProviderRouter {
         }
 
         // Default routing preferences
+        // ⚠️ DISABLED ROUTES: Latcom (IP blocked), PPN (sandbox only), MUWE (sandbox only)
+        // ✅ ACTIVE: CSQ production terminal 180167 (but products not routed yet)
         this.preferences = {
-            // Mexico topups: Latcom first (better rates), fallback to PPN, then MUWE, then Payments Mexico
-            mexico_topup: ['latcom', 'ppn', 'muwe', 'paymentsmexico'],
-            // International topups: PPN (global coverage)
-            international_topup: ['ppn', 'csq'],
-            // Bill payments: MUWE first (100+ billers), fallback to CSQ, then PPN
-            bill_payment: ['muwe', 'csq', 'ppn'],
-            // Vouchers: PPN (gift cards available)
-            voucher: ['ppn', 'csq'],
-            // SPEI transfers: MUWE only
-            spei: ['muwe'],
-            // OXXO cash: MUWE only
-            oxxo: ['muwe']
+            // Mexico topups: CSQ ONLY (Latcom blocked, PPN/MUWE are sandbox)
+            mexico_topup: ['csq'],
+            // International topups: CSQ only
+            international_topup: ['csq'],
+            // Bill payments: DISABLED (MUWE sandbox only, no production)
+            bill_payment: [],
+            // Vouchers: DISABLED (PPN sandbox only)
+            voucher: [],
+            // SPEI transfers: DISABLED (MUWE sandbox only)
+            spei: [],
+            // OXXO cash: DISABLED (MUWE sandbox only)
+            oxxo: []
         };
 
         // Log configured providers
