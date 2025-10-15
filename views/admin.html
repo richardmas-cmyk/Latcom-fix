@@ -572,7 +572,7 @@
                 console.error('Transaction load error:', error);
                 showAlert('Failed to load transactions: ' + error.message, 'error');
                 document.getElementById('transactionsBody').innerHTML =
-                    `<tr><td colspan="8" style="text-align: center; color: red;">Error: ${error.message}</td></tr>`;
+                    `<tr><td colspan="9" style="text-align: center; color: red;">Error: ${error.message}</td></tr>`;
             }
         }
 
