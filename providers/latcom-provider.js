@@ -1,8 +1,10 @@
 const axios = require('axios');
 const BaseProvider = require('./base-provider');
+const http = require('http');
+const https = require('https');
 
 /**
- * Latcom Provider Implementation
+ * Latcom Provider Implementation - OPTIMIZED
  * Supports: Mexico topups (Telefonica/Movistar)
  */
 class LatcomProvider extends BaseProvider {
@@ -21,8 +23,37 @@ class LatcomProvider extends BaseProvider {
         this.isConfigured = !!(this.config.baseUrl && this.config.username &&
                                this.config.password && this.config.distApi);
 
+        // OPTIMIZATION: HTTP Keep-Alive agents for connection reuse
+        // Reuse TCP connections instead of creating new ones for each request
+        this.httpAgent = new http.Agent({
+            keepAlive: true,
+            keepAliveMsecs: 30000, // Keep connection alive for 30 seconds
+            maxSockets: 50, // Max concurrent connections
+            maxFreeSockets: 10 // Keep up to 10 idle sockets ready
+        });
+
+        this.httpsAgent = new https.Agent({
+            keepAlive: true,
+            keepAliveMsecs: 30000,
+            maxSockets: 50,
+            maxFreeSockets: 10
+        });
+
+        // Create axios instance with persistent configuration
+        this.axiosInstance = axios.create({
+            httpAgent: this.httpAgent,
+            httpsAgent: this.httpsAgent,
+            timeout: 30000,
+            headers: {
+                'Content-Type': 'application/json',
+                'Connection': 'keep-alive'
+            }
+        });
+
         if (this.isConfigured) {
             console.log('✅ Latcom provider configured:', this.config.baseUrl);
+            // OPTIMIZATION: Pre-authenticate on startup (fire-and-forget)
+            this.login().catch(err => console.log('⚠️  Pre-auth failed:', err.message));
         } else {
             console.log('⚠️  Latcom provider not configured');
         }
@@ -43,24 +74,30 @@ class LatcomProvider extends BaseProvider {
         try {
             console.log('🔐 [Latcom] Logging in...');
 
-            const response = await axios.post(
+            // OPTIMIZATION: Use persistent axios instance with keep-alive
+            const response = await this.axiosInstance.post(
                 `${this.config.baseUrl}/api/dislogin`,
                 {
                     username: this.config.username,
                     password: this.config.password,
                     dist_api: this.config.distApi,
                     user_uid: this.config.userUid
-                },
-                {
-                    headers: { 'Content-Type': 'application/json' },
-                    timeout: 30000
                 }
             );
 
             if (response.data && response.data.access) {
                 this.accessToken = response.data.access;
-                this.tokenExpiry = Date.now() + (4 * 60 * 1000); // 4 minutes
-                console.log('✅ [Latcom] Login successful');
+                // OPTIMIZATION: Extend token cache to 8 minutes (was 4)
+                // Reduces re-authentication frequency
+                this.tokenExpiry = Date.now() + (8 * 60 * 1000);
+                console.log('✅ [Latcom] Login successful (token valid for 8min)');
+
+                // OPTIMIZATION: Schedule proactive token refresh at 7 minutes
+                // This ensures we always have a fresh token ready
+                setTimeout(() => {
+                    this.login().catch(err => console.log('⚠️  Token refresh failed:', err.message));
+                }, 7 * 60 * 1000);
+
                 return true;
             }
 
@@ -187,15 +224,14 @@ class LatcomProvider extends BaseProvider {
                 service: 2
             };
 
-            const response = await axios.post(
+            // OPTIMIZATION: Use persistent axios instance with keep-alive
+            const response = await this.axiosInstance.post(
                 `${this.config.baseUrl}/api/tn/fast`,
                 requestBody,
                 {
                     headers: {
-                        'Content-Type': 'application/json',
                         'Authorization': `Bearer ${this.accessToken}`
-                    },
-                    timeout: 30000
+                    }
                 }
             );
 
