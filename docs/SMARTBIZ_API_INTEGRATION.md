@@ -24,12 +24,14 @@ Base URL (Production): https://latcom-fix-production.up.railway.app
 
 ## 📋 Account Details
 
-- **Credit Limit:** $50,000 USD
-- **Starting Balance:** $50,000 USD
+- **Credit Limit:** $200 USD (Testing)
+- **Starting Balance:** $200 USD
 - **Commission Rate:** 0% (can be adjusted)
 - **Currency:** Transactions in MXN, balance in USD
 - **Daily Limit:** 5,000 MXN per end-user per day
 - **Rate Limit:** 200 requests per minute
+
+**Note:** This is a testing account with a $200 limit. Once ready for production, the credit limit will be increased.
 
 ---
 
@@ -74,8 +76,8 @@ curl https://latcom-fix-production.up.railway.app/api/balance \
   "success": true,
   "customer_id": "SMARTBIZ_001",
   "company_name": "SmartBiz Telecom",
-  "current_balance": 50000,
-  "credit_limit": 50000,
+  "current_balance": 200,
+  "credit_limit": 200,
   "currency": "USD"
 }
 ```
@@ -143,12 +145,12 @@ x-customer-id: SMARTBIZ_001
   },
   "billing": {
     "deducted_usd": 2.94,
-    "balance_before_usd": 50000,
-    "balance_after_usd": 49997.06,
+    "balance_before_usd": 200,
+    "balance_after_usd": 197.06,
     "exchange_rate": 17.0068
   },
   "message": "Top-up of 50 MXN processed successfully. $2.94 USD deducted from balance.",
-  "remaining_balance": 49997.06
+  "remaining_balance": 197.06
 }
 ```
 
@@ -270,8 +272,8 @@ x-customer-id: SMARTBIZ_001
   "success": true,
   "customer_id": "SMARTBIZ_001",
   "company_name": "SmartBiz Telecom",
-  "current_balance": 49997.06,
-  "credit_limit": 50000,
+  "current_balance": 197.06,
+  "credit_limit": 200,
   "currency": "USD"
 }
 ```

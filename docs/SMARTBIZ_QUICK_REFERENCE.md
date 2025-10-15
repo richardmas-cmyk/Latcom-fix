@@ -49,14 +49,16 @@ curl https://latcom-fix-production.up.railway.app/api/transaction/RLR1234567890 
 
 | Item | Value |
 |------|-------|
-| **Credit Limit** | $50,000 USD |
-| **Starting Balance** | $50,000 USD |
+| **Credit Limit** | $200 USD (Testing) |
+| **Starting Balance** | $200 USD |
 | **Commission** | 0% |
 | **Daily Limit (per user)** | 5,000 MXN |
 | **Rate Limit** | 200 req/min |
 | **Min Amount** | 10 MXN |
 | **Max Amount** | 500 MXN |
 | **Processing Time** | 2-10 seconds |
+
+**Note:** Testing account - production limits will be higher.
 
 ---
 
