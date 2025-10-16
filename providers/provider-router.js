@@ -32,11 +32,11 @@ class ProviderRouter {
         }
 
         // Default routing preferences
-        // ⚠️ DISABLED ROUTES: Latcom (IP blocked), PPN (sandbox only), MUWE (sandbox only)
-        // ✅ ACTIVE: CSQ production terminal 180167 (but products not routed yet)
+        // ✅ PRIMARY: Latcom (PRODUCTION - IP whitelisted)
+        // ✅ BACKUP: CSQ (production terminal 180167)
         this.preferences = {
-            // Mexico topups: CSQ ONLY (Latcom blocked, PPN/MUWE are sandbox)
-            mexico_topup: ['csq'],
+            // Mexico topups: LATCOM PRIMARY with CSQ failover
+            mexico_topup: ['latcom', 'csq'],
             // International topups: CSQ only
             international_topup: ['csq'],
             // Bill payments: DISABLED (MUWE sandbox only, no production)
