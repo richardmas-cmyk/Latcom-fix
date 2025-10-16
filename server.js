@@ -744,14 +744,18 @@ app.post('/api/enviadespensa/topup',
         let providerResult;
         const startTime = Date.now();
         try {
+            // CUSTOMER-SPECIFIC ROUTING: EnviaDespensa ONLY uses Latcom
+            const preferredProvider = (customerId === 'ENVIADESPENSA_001') ? 'latcom' : provider;
+            const enableFailover = (customerId === 'ENVIADESPENSA_001') ? false : true;
+
             const topupRequest = {
                 phone: phone,
                 amount: amount,
                 reference: reference || transactionId,
                 country: 'MEXICO',
                 currency: 'MXN',
-                preferredProvider: provider,  // Use specific provider if requested
-                enableFailover: true  // Enable automatic failover to backup providers
+                preferredProvider: preferredProvider,  // Force Latcom for EnviaDespensa
+                enableFailover: enableFailover  // No failover for EnviaDespensa (Latcom only)
             };
 
             // Add SKU ID for CSQ provider (Telcel = 396, Amigo = 683, Internet = 684)
