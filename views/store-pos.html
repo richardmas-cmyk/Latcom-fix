@@ -275,6 +275,82 @@
             text-decoration: none;
             border-radius: 8px;
         }
+
+        .carriers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .carrier-btn {
+            background: white;
+            border: 2px solid #e5e7eb;
+            padding: 15px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .carrier-btn:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .carrier-btn.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .amounts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .amount-btn {
+            background: white;
+            border: 2px solid #e5e7eb;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .amount-btn:hover {
+            border-color: #10b981;
+            transform: scale(1.05);
+        }
+
+        .amount-btn.selected {
+            border-color: #10b981;
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .step-indicator {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .back-btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -293,7 +369,7 @@
             <button class="product-btn" onclick="openModal('mobile')">
                 <div class="product-icon">📱</div>
                 <div class="product-name">Recarga Móvil</div>
-                <div class="product-fee">Comisión: $<span id="mobileFee">5</span> MXN</div>
+                <div class="product-fee">Sin comisión adicional</div>
             </button>
 
             <button class="product-btn" onclick="openModal('spei')">
@@ -335,17 +411,40 @@
                 <button class="close-btn" onclick="closeModal('mobile')">×</button>
             </div>
             <div id="mobileResult"></div>
-            <form id="mobileForm" onsubmit="processMobile(event)">
-                <div class="form-group">
-                    <label>Número de Teléfono</label>
-                    <input type="tel" id="mobilePhone" placeholder="5512345678" required pattern="[0-9]{10}">
+
+            <!-- Step 1: Carrier Selection -->
+            <div id="carrierStep" style="display: block;">
+                <div class="step-indicator">Paso 1 de 3: Selecciona la Compañía</div>
+                <div id="carriersGrid" class="carriers-grid">
+                    <div style="text-align: center; padding: 20px; color: #6b7280;">
+                        Cargando compañías...
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Monto (MXN)</label>
-                    <input type="number" id="mobileAmount" placeholder="20" required min="10" max="500">
-                </div>
-                <button type="submit" class="submit-btn" id="mobileSubmit">Procesar Recarga</button>
-            </form>
+            </div>
+
+            <!-- Step 2: Amount Selection -->
+            <div id="amountStep" style="display: none;">
+                <div class="step-indicator">Paso 2 de 3: Selecciona el Monto</div>
+                <div id="amountsGrid" class="amounts-grid"></div>
+                <button class="back-btn" onclick="goToCarrierStep()">← Atrás</button>
+            </div>
+
+            <!-- Step 3: Phone Number -->
+            <div id="phoneStep" style="display: none;">
+                <div class="step-indicator">Paso 3 de 3: Ingresa el Teléfono</div>
+                <form id="mobileForm" onsubmit="processMobile(event)">
+                    <div class="form-group">
+                        <label>Número de Teléfono</label>
+                        <input type="tel" id="mobilePhone" placeholder="5512345678" required pattern="[0-9]{10}">
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <strong>Compañía:</strong> <span id="selectedCarrierName"></span><br>
+                        <strong>Monto:</strong> $<span id="selectedAmountValue"></span> MXN
+                    </div>
+                    <button class="back-btn" onclick="goToAmountStep()">← Atrás</button>
+                    <button type="submit" class="submit-btn" id="mobileSubmit">Procesar Recarga</button>
+                </form>
+            </div>
         </div>
     </div>
 

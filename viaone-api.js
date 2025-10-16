@@ -166,30 +166,84 @@ module.exports = function(app, pool) {
         }
     });
 
+    // Get available Mexico carriers from PPN
+    app.get('/api/store/carriers', verifyStoreToken, async (req, res) => {
+        try {
+            const PPNProvider = require('./providers/ppn-provider');
+            const ppn = new PPNProvider();
+
+            // Get Mexico carriers from PPN
+            const result = await ppn.getSKUs({ country: 'MX', type: 'topup' });
+
+            if (result.success) {
+                // Group by carrier/operator
+                const carriers = {};
+
+                result.skus.forEach(sku => {
+                    const operator = sku.operator || sku.operatorName;
+                    if (!carriers[operator]) {
+                        carriers[operator] = {
+                            name: operator,
+                            logo: sku.logoUrl || null,
+                            products: []
+                        };
+                    }
+                    carriers[operator].products.push({
+                        skuId: sku.skuId,
+                        amount: sku.denomination || sku.amount,
+                        currency: sku.currency || 'MXN',
+                        name: sku.skuName
+                    });
+                });
+
+                res.json({
+                    success: true,
+                    carriers: Object.values(carriers)
+                });
+            } else {
+                // Fallback to hardcoded Mexico carriers
+                res.json({
+                    success: true,
+                    carriers: [
+                        { name: 'Telcel', logo: null, products: [
+                            { skuId: 'telcel_20', amount: 20, currency: 'MXN' },
+                            { skuId: 'telcel_30', amount: 30, currency: 'MXN' },
+                            { skuId: 'telcel_50', amount: 50, currency: 'MXN' },
+                            { skuId: 'telcel_100', amount: 100, currency: 'MXN' }
+                        ]},
+                        { name: 'AT&T', logo: null, products: [
+                            { skuId: 'att_20', amount: 20, currency: 'MXN' },
+                            { skuId: 'att_30', amount: 30, currency: 'MXN' },
+                            { skuId: 'att_50', amount: 50, currency: 'MXN' },
+                            { skuId: 'att_100', amount: 100, currency: 'MXN' }
+                        ]},
+                        { name: 'Movistar', logo: null, products: [
+                            { skuId: 'movistar_20', amount: 20, currency: 'MXN' },
+                            { skuId: 'movistar_30', amount: 30, currency: 'MXN' },
+                            { skuId: 'movistar_50', amount: 50, currency: 'MXN' },
+                            { skuId: 'movistar_100', amount: 100, currency: 'MXN' }
+                        ]}
+                    ]
+                });
+            }
+        } catch (error) {
+            console.error('Get carriers error:', error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
     // Mobile Topup (PPN)
     app.post('/api/store/mobile-topup', verifyStoreToken, async (req, res) => {
-        const { phone, amount } = req.body;
+        const { phone, amount, skuId, carrier } = req.body;
         const client = await pool.connect();
 
         try {
             await client.query('BEGIN');
 
-            // Get pricing
-            const pricingResult = await client.query(
-                `SELECT * FROM store_pricing
-                 WHERE store_id = $1 AND product_type = 'mobile_topup' AND is_active = true`,
-                [req.store.store_id]
-            );
-
-            if (pricingResult.rows.length === 0) {
-                await client.query('ROLLBACK');
-                return res.status(400).json({ success: false, error: 'Product not configured' });
-            }
-
-            const pricing = pricingResult.rows[0];
-            const retailFee = parseFloat(pricing.retail_fee);
-            const cost = parseFloat(pricing.cost_per_transaction);
-            const profit = retailFee - cost;
+            // Mobile topup has NO retail fee - automated % discount from our side
+            // The store just processes the transaction, owner gets invoiced with discount
+            const cost = parseFloat(amount); // Cost = face value
+            const profit = 0; // No immediate profit tracking (handled in invoicing)
 
             // Call PPN provider (assuming we have PPN configured)
             const PPNProvider = require('./providers/ppn-provider');
@@ -200,6 +254,8 @@ module.exports = function(app, pool) {
             const ppnResult = await ppn.topup({
                 phone: phone,
                 amount: amount,
+                skuId: skuId,
+                operator: carrier,
                 reference: transactionId
             });
 
@@ -216,7 +272,7 @@ module.exports = function(app, pool) {
                 'mobile_topup',
                 phone,
                 amount,
-                retailFee,
+                0, // No retail fee
                 cost,
                 profit,
                 status,
