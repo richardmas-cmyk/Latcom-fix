@@ -2302,6 +2302,125 @@ app.post('/webhook/muwe', async (req, res) => {
     }
 });
 
+// ==========================================
+// VIA.ONE RETAIL SYSTEM
+// ==========================================
+
+// Import Via.One API endpoints
+const viaoneAPI = require('./viaone-api');
+
+// Via.One routes
+app.get('/store-login.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'store-login.html'));
+});
+
+app.get('/store-pos.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'store-pos.html'));
+});
+
+app.get('/owner-dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'owner-dashboard.html'));
+});
+
+// Register Via.One API endpoints
+viaoneAPI(app, pool);
+
+// Via.One setup endpoint (admin only - run once)
+app.post('/api/admin/setup-viaone', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+
+    if (adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ success: false, error: 'Unauthorized' });
+    }
+
+    if (!dbConnected) {
+        return res.status(503).json({ success: false, error: 'Database not connected' });
+    }
+
+    try {
+        const bcrypt = require('bcrypt');
+
+        // Store passwords (change in production)
+        const STORE_PASSWORDS = {
+            'STORE_001': 'store1pass',
+            'STORE_002': 'store2pass',
+            'STORE_003': 'store3pass',
+            'STORE_004': 'store4pass'
+        };
+
+        // Create owner account
+        await pool.query(`
+            INSERT INTO owner_settings (owner_id, owner_name, email, is_active)
+            VALUES ('OWNER_001', 'Store Owner', 'owner@viaone.mx', true)
+            ON CONFLICT (owner_id) DO NOTHING
+        `);
+
+        // Create stores
+        const stores = [
+            { id: 'STORE_001', name: 'Via.One Store 1', username: 'store1' },
+            { id: 'STORE_002', name: 'Via.One Store 2', username: 'store2' },
+            { id: 'STORE_003', name: 'Via.One Store 3', username: 'store3' },
+            { id: 'STORE_004', name: 'Via.One Store 4', username: 'store4' }
+        ];
+
+        const storeCredentials = [];
+
+        for (const store of stores) {
+            const password = STORE_PASSWORDS[store.id];
+            const passwordHash = await bcrypt.hash(password, 10);
+
+            await pool.query(`
+                INSERT INTO stores (store_id, store_name, username, password_hash, owner_id, is_active)
+                VALUES ($1, $2, $3, $4, 'OWNER_001', true)
+                ON CONFLICT (store_id)
+                DO UPDATE SET password_hash = $4, store_name = $2
+            `, [store.id, store.name, store.username, passwordHash]);
+
+            storeCredentials.push({
+                store_name: store.name,
+                username: store.username,
+                password: password
+            });
+        }
+
+        // Create default pricing
+        const products = [
+            { type: 'mobile_topup', name: 'Mobile Topup', cost: 0, fee: 5 },
+            { type: 'spei', name: 'SPEI Bank Transfer', cost: 0, fee: 10 },
+            { type: 'oxxo_gift_card', name: 'OXXO Gift Card', cost: 0, fee: 5 }
+        ];
+
+        for (const store of stores) {
+            for (const product of products) {
+                await pool.query(`
+                    INSERT INTO store_pricing (store_id, product_type, product_name, cost_per_transaction, retail_fee, is_active)
+                    VALUES ($1, $2, $3, $4, $5, true)
+                    ON CONFLICT DO NOTHING
+                `, [store.id, product.type, product.name, product.cost, product.fee]);
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Via.One system initialized successfully',
+            stores: storeCredentials,
+            owner: {
+                username: 'owner',
+                password: 'ownerpass123'
+            },
+            urls: {
+                store_login: '/store-login.html',
+                owner_dashboard: '/owner-dashboard.html'
+            },
+            warning: 'Change these passwords in production!'
+        });
+
+    } catch (error) {
+        console.error('Via.One setup error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Start server
 const PORT = process.env.PORT || 8080;
 
@@ -2310,6 +2429,7 @@ console.log('📦 Providers: Latcom, PPN (Valuetop), CSQ, MUWE');
 const configuredProviders = providerRouter.getConfiguredProviders();
 console.log(`✅ ${configuredProviders.length} provider(s) configured and ready`);
 console.log('📧 Alert system configured:', alertSystem.isConfigured() ? 'YES' : 'NO');
+console.log('🏪 Via.One Retail System ready');
 
 testDatabase().then(() => {
     initDatabase().then(() => {

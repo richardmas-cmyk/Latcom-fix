@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Integración API Relier - HAZ Group</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+        @media print {
+            h1, h2, h3 { page-break-after: avoid; }
+            pre, table { page-break-inside: avoid; }
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            line-height: 1.7;
+            color: #333;
+            background: white;
+        }
+        h1 {
+            color: #667eea;
+            font-size: 32px;
+            margin-top: 40px;
+            margin-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        h1:first-of-type {
+            margin-top: 0;
+        }
+        h2 {
+            color: #764ba2;
+            font-size: 24px;
+            margin-top: 30px;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 6px;
+        }
+        h3 {
+            color: #667eea;
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+        h4 {
+            color: #555;
+            font-size: 16px;
+            margin-top: 15px;
+            margin-bottom: 8px;
+        }
+        p {
+            margin: 12px 0;
+        }
+        code {
+            background-color: #f4f4f4;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: "Courier New", Consolas, monospace;
+            font-size: 0.9em;
+            color: #c7254e;
+        }
+        pre {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            border-left: 4px solid #667eea;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+            color: #333;
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f0f0f0;
+        }
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        blockquote {
+            border-left: 4px solid #667eea;
+            padding-left: 20px;
+            margin: 20px 0;
+            font-style: italic;
+            color: #666;
+        }
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 30px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        hr {
+            border: none;
+            border-top: 2px solid #eee;
+            margin: 30px 0;
+        }
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        .print-button:hover {
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
+        }
+        @media print {
+            .print-button {
+                display: none;
+            }
+            body {
+                margin: 0;
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button" onclick="window.print()">📄 Guardar como PDF</button>
+    <h1>Guía de Integración API Relier</h1>
+<p><strong>Cliente:</strong> HAZ Group
+<strong>Versión del Documento:</strong> 1.0
+<strong>Fecha:</strong> 13 de Octubre, 2025
+<strong>Estado:</strong> Listo para Producción</p>
+<hr />
+<h2>Tabla de Contenidos</h2>
+<ol>
+<li><a href="#descripción-general">Descripción General</a></li>
+<li><a href="#autenticación">Autenticación</a></li>
+<li><a href="#endpoints-de-la-api">Endpoints de la API</a></li>
+<li><a href="#formato-de-solicitudrespuesta">Formato de Solicitud/Respuesta</a></li>
+<li><a href="#manejo-de-errores">Manejo de Errores</a></li>
+<li><a href="#límites-de-tasa-y-seguridad">Límites de Tasa y Seguridad</a></li>
+<li><a href="#guía-de-pruebas">Guía de Pruebas</a></li>
+<li><a href="#ejemplos-de-código">Ejemplos de Código</a></li>
+<li><a href="#soporte">Soporte</a></li>
+</ol>
+<hr />
+<h2>Descripción General</h2>
+<p>Relier proporciona una API RESTful para recargas de tiempo aire móvil en México. Este documento describe el proceso de integración para que HAZ Group se conecte a la plataforma Relier.</p>
+<h3>Características de la API</h3>
+<ul>
+<li><strong>Recargas en tiempo real</strong> a los principales operadores mexicanos (Telcel, Movistar, AT&amp;T, Unefon, Virgin Mobile)</li>
+<li><strong>Facturación en USD</strong> con conversión automática a MXN a tipos de cambio competitivos</li>
+<li><strong>Seguimiento de transacciones</strong> con IDs únicos para reconciliación</li>
+<li><strong>Alta disponibilidad</strong> con SLA de 99.9% de tiempo de actividad</li>
+<li><strong>Autenticación segura</strong> con claves API</li>
+<li><strong>Limitación de tasa</strong> para prevenir abusos</li>
+</ul>
+<h3>URL Base</h3>
+<p><strong>Producción:</strong></p>
+<pre class="codehilite"><code>https://latcom-fix-production.up.railway.app
+</code></pre>
+
+<hr />
+<h2>Autenticación</h2>
+<p>Todas las solicitudes de API requieren autenticación mediante encabezados HTTP.</p>
+<h3>Encabezados Requeridos</h3>
+<pre class="codehilite"><code class="language-http">Content-Type: application/json
+x-api-key: haz_prod_2025
+x-customer-id: HAZ_001
+</code></pre>
+
+<h3>Notas de Seguridad</h3>
+<ul>
+<li>Mantenga sus credenciales de API seguras</li>
+<li>Nunca confirme credenciales en el control de versiones</li>
+<li>Use variables de entorno para el almacenamiento de credenciales</li>
+<li>Rote las claves periódicamente (contacte a soporte para rotación de claves)</li>
+</ul>
+<hr />
+<h2>Endpoints de la API</h2>
+<h3>1. Verificación de Salud</h3>
+<p>Verifica la disponibilidad de la API y el estado del sistema.</p>
+<p><strong>Endpoint:</strong> <code>GET /health</code>
+<strong>Autenticación:</strong> No requerida</p>
+<p><strong>Respuesta:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;status&quot;: &quot;OK&quot;,
+  &quot;timestamp&quot;: &quot;2025-10-13T10:00:00.000Z&quot;,
+  &quot;uptime&quot;: 86400,
+  &quot;mode&quot;: &quot;PRODUCTION&quot;,
+  &quot;services&quot;: {
+    &quot;database&quot;: {
+      &quot;connected&quot;: true,
+      &quot;status&quot;: &quot;healthy&quot;
+    },
+    &quot;redis&quot;: {
+      &quot;connected&quot;: true,
+      &quot;status&quot;: &quot;healthy&quot;
+    }
+  }
+}
+</code></pre>
+
+<hr />
+<h3>2. Consultar Saldo</h3>
+<p>Recupera el saldo actual de tu cuenta y el límite de crédito.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/balance</code>
+<strong>Autenticación:</strong> Requerida</p>
+<p><strong>Ejemplo de Solicitud:</strong></p>
+<pre class="codehilite"><code class="language-bash">curl -X GET https://latcom-fix-production.up.railway.app/api/balance \
+  -H &quot;x-api-key: haz_prod_2025&quot; \
+  -H &quot;x-customer-id: HAZ_001&quot;
+</code></pre>
+
+<p><strong>Respuesta:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;customer_id&quot;: &quot;HAZ_001&quot;,
+  &quot;company_name&quot;: &quot;HAZ Group&quot;,
+  &quot;current_balance&quot;: 9998.92,
+  &quot;credit_limit&quot;: 10000,
+  &quot;currency&quot;: &quot;USD&quot;
+}
+</code></pre>
+
+<hr />
+<h3>3. Procesar Recarga (Síncrona)</h3>
+<p>Procesa una recarga móvil y espera el resultado.</p>
+<p><strong>Endpoint:</strong> <code>POST /api/enviadespensa/topup</code>
+<strong>Autenticación:</strong> Requerida
+<strong>Límite de Tasa:</strong> 200 solicitudes por minuto</p>
+<p><strong>Cuerpo de la Solicitud:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;phone&quot;: &quot;5566374683&quot;,
+  &quot;amount&quot;: 20,
+  &quot;reference&quot;: &quot;ORDEN_12345&quot;
+}
+</code></pre>
+
+<p><strong>Descripción de Campos:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Campo</th>
+<th>Tipo</th>
+<th>Requerido</th>
+<th>Descripción</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>phone</td>
+<td>string</td>
+<td>Sí</td>
+<td>Número telefónico mexicano de 10 dígitos (sin código de país)</td>
+</tr>
+<tr>
+<td>amount</td>
+<td>number</td>
+<td>Sí</td>
+<td>Monto de recarga en MXN (10-500)</td>
+</tr>
+<tr>
+<td>reference</td>
+<td>string</td>
+<td>No</td>
+<td>Tu ID de orden/referencia interno para seguimiento</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Montos Disponibles (MXN):</strong></p>
+<pre class="codehilite"><code>10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 500
+</code></pre>
+
+<p><strong>Ejemplo de Solicitud:</strong></p>
+<pre class="codehilite"><code class="language-bash">curl -X POST https://latcom-fix-production.up.railway.app/api/enviadespensa/topup \
+  -H &quot;Content-Type: application/json&quot; \
+  -H &quot;x-api-key: haz_prod_2025&quot; \
+  -H &quot;x-customer-id: HAZ_001&quot; \
+  -d '{
+    &quot;phone&quot;: &quot;5566374683&quot;,
+    &quot;amount&quot;: 20,
+    &quot;reference&quot;: &quot;ORDEN_12345&quot;
+  }'
+</code></pre>
+
+<p><strong>Respuesta Exitosa:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;transaction&quot;: {
+    &quot;id&quot;: &quot;RLR1760353500123&quot;,
+    &quot;status&quot;: &quot;SUCCESS&quot;,
+    &quot;amount_mxn&quot;: 20,
+    &quot;amount_usd&quot;: 1.08,
+    &quot;exchange_rate&quot;: 18.52,
+    &quot;phone&quot;: &quot;5566374683&quot;,
+    &quot;reference&quot;: &quot;ORDEN_12345&quot;,
+    &quot;operatorTransactionId&quot;: &quot;LT62599623&quot;,
+    &quot;provider&quot;: &quot;relier&quot;,
+    &quot;processedAt&quot;: &quot;2025-10-13T10:00:00Z&quot;,
+    &quot;currency&quot;: &quot;MXN&quot;
+  },
+  &quot;billing&quot;: {
+    &quot;deducted_usd&quot;: 1.08,
+    &quot;balance_before_usd&quot;: 10000.00,
+    &quot;balance_after_usd&quot;: 9998.92,
+    &quot;exchange_rate&quot;: 18.52
+  },
+  &quot;message&quot;: &quot;Recarga de 20 MXN procesada exitosamente. $1.08 USD deducidos del saldo.&quot;,
+  &quot;remaining_balance&quot;: 9998.92
+}
+</code></pre>
+
+<hr />
+<h3>4. Procesar Recarga (Asíncrona)</h3>
+<p>Envía una solicitud de recarga para procesamiento en segundo plano. Recomendado para operaciones de alto volumen.</p>
+<p><strong>Endpoint:</strong> <code>POST /api/enviadespensa/topup-async</code>
+<strong>Autenticación:</strong> Requerida
+<strong>Límite de Tasa:</strong> 200 solicitudes por minuto</p>
+<p><strong>Cuerpo de la Solicitud:</strong> (Igual que la síncrona)</p>
+<p><strong>Respuesta:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;transaction&quot;: {
+    &quot;id&quot;: &quot;RLR1760353500456&quot;,
+    &quot;status&quot;: &quot;PENDING&quot;,
+    &quot;amount&quot;: 20,
+    &quot;phone&quot;: &quot;5566374683&quot;,
+    &quot;reference&quot;: &quot;ORDEN_12345&quot;,
+    &quot;queuedAt&quot;: &quot;2025-10-13T10:00:00Z&quot;,
+    &quot;currency&quot;: &quot;MXN&quot;
+  },
+  &quot;message&quot;: &quot;Transacción en cola para procesamiento&quot;,
+  &quot;check_status_url&quot;: &quot;/api/transaction/RLR1760353500456&quot;
+}
+</code></pre>
+
+<hr />
+<h3>5. Consultar Estado de Transacción</h3>
+<p>Verifica el estado de una transacción específica.</p>
+<p><strong>Endpoint:</strong> <code>GET /api/transaction/{transactionId}</code>
+<strong>Autenticación:</strong> No requerida (el ID de transacción actúa como token)</p>
+<p><strong>Ejemplo de Solicitud:</strong></p>
+<pre class="codehilite"><code class="language-bash">curl https://latcom-fix-production.up.railway.app/api/transaction/RLR1760353500123
+</code></pre>
+
+<p><strong>Respuesta:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;transaction&quot;: {
+    &quot;transaction_id&quot;: &quot;RLR1760353500123&quot;,
+    &quot;customer_id&quot;: &quot;HAZ_001&quot;,
+    &quot;phone&quot;: &quot;5566374683&quot;,
+    &quot;amount_mxn&quot;: 20,
+    &quot;amount_usd&quot;: 1.08,
+    &quot;exchange_rate&quot;: 18.52,
+    &quot;status&quot;: &quot;SUCCESS&quot;,
+    &quot;reference&quot;: &quot;ORDEN_12345&quot;,
+    &quot;operator_transaction_id&quot;: &quot;LT62599623&quot;,
+    &quot;provider&quot;: &quot;relier&quot;,
+    &quot;response_time_ms&quot;: 2345,
+    &quot;created_at&quot;: &quot;2025-10-13T10:00:00Z&quot;,
+    &quot;processed_at&quot;: &quot;2025-10-13T10:00:02Z&quot;,
+    &quot;currency&quot;: &quot;MXN&quot;
+  }
+}
+</code></pre>
+
+<p><strong>Estados de Transacción:</strong>
+- <code>PENDING</code> - Transacción enviada, esperando procesamiento
+- <code>SUCCESS</code> - Recarga completada exitosamente
+- <code>FAILED</code> - Recarga fallida (el saldo no será deducido)</p>
+<hr />
+<h2>Formato de Solicitud/Respuesta</h2>
+<h3>Requisitos de Solicitud</h3>
+<ol>
+<li><strong>Content-Type:</strong> Todas las solicitudes POST deben usar <code>Content-Type: application/json</code></li>
+<li><strong>Formato de Teléfono:</strong> 10 dígitos, sin espacios ni caracteres especiales (ej., <code>5566374683</code>)</li>
+<li><strong>Monto:</strong> Debe ser uno de los montos MXN permitidos (10-500)</li>
+<li><strong>Referencia:</strong> Opcional pero recomendado para seguimiento</li>
+</ol>
+<h3>Formato de Respuesta</h3>
+<p>Todas las respuestas siguen esta estructura:</p>
+<p><strong>Éxito:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: true,
+  &quot;transaction&quot;: { ... },
+  &quot;billing&quot;: { ... },
+  &quot;message&quot;: &quot;Mensaje de éxito descriptivo&quot;
+}
+</code></pre>
+
+<p><strong>Error:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: false,
+  &quot;error&quot;: &quot;Descripción del error&quot;,
+  &quot;details&quot;: { ... }
+}
+</code></pre>
+
+<hr />
+<h2>Manejo de Errores</h2>
+<h3>Códigos de Estado HTTP Comunes</h3>
+<table>
+<thead>
+<tr>
+<th>Código</th>
+<th>Significado</th>
+<th>Descripción</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>200</td>
+<td>OK</td>
+<td>Solicitud exitosa</td>
+</tr>
+<tr>
+<td>400</td>
+<td>Solicitud Incorrecta</td>
+<td>Formato o parámetros de solicitud inválidos</td>
+</tr>
+<tr>
+<td>401</td>
+<td>No Autorizado</td>
+<td>Credenciales de API inválidas o faltantes</td>
+</tr>
+<tr>
+<td>403</td>
+<td>Prohibido</td>
+<td>Saldo insuficiente o IP no autorizada</td>
+</tr>
+<tr>
+<td>429</td>
+<td>Demasiadas Solicitudes</td>
+<td>Límite de tasa excedido</td>
+</tr>
+<tr>
+<td>500</td>
+<td>Error Interno del Servidor</td>
+<td>Error del sistema, contactar soporte</td>
+</tr>
+<tr>
+<td>503</td>
+<td>Servicio No Disponible</td>
+<td>Sistema temporalmente no disponible</td>
+</tr>
+</tbody>
+</table>
+<h3>Ejemplos de Respuesta de Error</h3>
+<p><strong>Credenciales Inválidas:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: false,
+  &quot;error&quot;: &quot;Credenciales de API inválidas&quot;
+}
+</code></pre>
+
+<p><strong>Saldo Insuficiente:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: false,
+  &quot;error&quot;: &quot;Saldo insuficiente&quot;,
+  &quot;current_balance_usd&quot;: 5.00,
+  &quot;required_usd&quot;: 10.80
+}
+</code></pre>
+
+<p><strong>Monto Inválido:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: false,
+  &quot;error&quot;: &quot;Monto de producto inválido&quot;,
+  &quot;message&quot;: &quot;Solo se permiten montos fijos&quot;,
+  &quot;allowed_amounts&quot;: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200, 300, 500],
+  &quot;requested_amount&quot;: 25
+}
+</code></pre>
+
+<p><strong>Límite de Tasa Excedido:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: false,
+  &quot;error&quot;: &quot;Demasiadas solicitudes de recarga. Máximo 200 por minuto.&quot;
+}
+</code></pre>
+
+<p><strong>Límite Diario Excedido:</strong></p>
+<pre class="codehilite"><code class="language-json">{
+  &quot;success&quot;: false,
+  &quot;error&quot;: &quot;Límite de transacciones diarias excedido&quot;,
+  &quot;daily_limit_mxn&quot;: 5000,
+  &quot;used_today_mxn&quot;: 4800,
+  &quot;requested_mxn&quot;: 300,
+  &quot;available_mxn&quot;: 200
+}
+</code></pre>
+
+<h3>Lógica de Reintento</h3>
+<p>Implemente retroceso exponencial para solicitudes fallidas:</p>
+<ol>
+<li><strong>Errores de red:</strong> Reintentar con retroceso (1s, 2s, 4s)</li>
+<li><strong>429 Límite de Tasa:</strong> Esperar 60 segundos antes de reintentar</li>
+<li><strong>Errores 500/503:</strong> Reintentar con retroceso (5s, 10s, 30s)</li>
+<li><strong>Errores 400/401/403:</strong> No reintentar, corregir la solicitud</li>
+</ol>
+<hr />
+<h2>Límites de Tasa y Seguridad</h2>
+<h3>Límites de Tasa</h3>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Límite</th>
+<th>Ventana</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>API General</td>
+<td>300 solicitudes</td>
+<td>15 minutos</td>
+</tr>
+<tr>
+<td>Endpoints de recarga</td>
+<td>200 solicitudes</td>
+<td>1 minuto</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Encabezados de Límite de Tasa:</strong></p>
+<pre class="codehilite"><code>X-RateLimit-Limit: 200
+X-RateLimit-Remaining: 195
+X-RateLimit-Reset: 1697193600
+</code></pre>
+
+<h3>Límite de Transacciones Diarias</h3>
+<ul>
+<li><strong>Máximo:</strong> 5,000 MXN por período de 24 horas</li>
+<li>Previene gastos excesivos</li>
+<li>Se reinicia automáticamente a medianoche UTC</li>
+</ul>
+<h3>Características de Seguridad</h3>
+<ol>
+<li><strong>Autenticación con Clave API</strong> - Todas las solicitudes validadas</li>
+<li><strong>Solo HTTPS</strong> - Todo el tráfico cifrado</li>
+<li><strong>Limitación de Tasa</strong> - Previene abusos</li>
+<li><strong>Lista Blanca de IP</strong> - Opcional (contactar soporte para habilitar)</li>
+<li><strong>Registro de Transacciones</strong> - Mantenimiento completo de auditoría</li>
+</ol>
+<h3>Mejores Prácticas</h3>
+<ul>
+<li>Almacene credenciales en variables de entorno</li>
+<li>Use HTTPS para todas las solicitudes</li>
+<li>Implemente tiempos de espera de solicitud (30 segundos recomendado)</li>
+<li>Registre todas las transacciones para reconciliación</li>
+<li>Monitoree su saldo regularmente</li>
+<li>Configure alertas de saldo bajo</li>
+</ul>
+<hr />
+<h2>Guía de Pruebas</h2>
+<h3>Paso 1: Verificar Acceso a la API</h3>
+<pre class="codehilite"><code class="language-bash">curl https://latcom-fix-production.up.railway.app/health
+</code></pre>
+
+<p>Esperado: <code>{"status":"OK",...}</code></p>
+<h3>Paso 2: Consultar Su Saldo</h3>
+<pre class="codehilite"><code class="language-bash">curl -X GET https://latcom-fix-production.up.railway.app/api/balance \
+  -H &quot;x-api-key: haz_prod_2025&quot; \
+  -H &quot;x-customer-id: HAZ_001&quot;
+</code></pre>
+
+<p>Esperado: Saldo actual y límite de crédito</p>
+<h3>Paso 3: Probar Recarga Pequeña</h3>
+<pre class="codehilite"><code class="language-bash">curl -X POST https://latcom-fix-production.up.railway.app/api/enviadespensa/topup \
+  -H &quot;Content-Type: application/json&quot; \
+  -H &quot;x-api-key: haz_prod_2025&quot; \
+  -H &quot;x-customer-id: HAZ_001&quot; \
+  -d '{
+    &quot;phone&quot;: &quot;5566374683&quot;,
+    &quot;amount&quot;: 10,
+    &quot;reference&quot;: &quot;PRUEBA_001&quot;
+  }'
+</code></pre>
+
+<p>Esperado: Respuesta exitosa con detalles de la transacción</p>
+<h3>Paso 4: Verificar Transacción</h3>
+<pre class="codehilite"><code class="language-bash">curl https://latcom-fix-production.up.railway.app/api/transaction/RLR1760353500123
+</code></pre>
+
+<p>Reemplace el ID de transacción con el del Paso 3.</p>
+<hr />
+<h2>Ejemplos de Código</h2>
+<h3>Node.js / JavaScript</h3>
+<pre class="codehilite"><code class="language-javascript">const axios = require('axios');
+
+const RELIER_API_URL = 'https://latcom-fix-production.up.railway.app';
+const API_KEY = 'haz_prod_2025';
+const CUSTOMER_ID = 'HAZ_001';
+
+async function procesarRecarga(telefono, monto, referencia) {
+  try {
+    const response = await axios.post(
+      `${RELIER_API_URL}/api/enviadespensa/topup`,
+      {
+        phone: telefono,
+        amount: monto,
+        reference: referencia
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': API_KEY,
+          'x-customer-id': CUSTOMER_ID
+        },
+        timeout: 30000 // 30 segundos
+      }
+    );
+
+    if (response.data.success) {
+      console.log('¡Recarga exitosa!');
+      console.log('ID de Transacción:', response.data.transaction.id);
+      console.log('Monto:', response.data.transaction.amount_mxn, 'MXN');
+      console.log('Costo:', response.data.transaction.amount_usd, 'USD');
+      console.log('Saldo restante:', response.data.remaining_balance, 'USD');
+      return response.data;
+    } else {
+      console.error('Recarga fallida:', response.data.error);
+      return null;
+    }
+  } catch (error) {
+    if (error.response) {
+      console.error('Error de API:', error.response.data.error);
+      console.error('Estado:', error.response.status);
+    } else {
+      console.error('Error de Red:', error.message);
+    }
+    return null;
+  }
+}
+
+// Consultar saldo
+async function consultarSaldo() {
+  try {
+    const response = await axios.get(
+      `${RELIER_API_URL}/api/balance`,
+      {
+        headers: {
+          'x-api-key': API_KEY,
+          'x-customer-id': CUSTOMER_ID
+        }
+      }
+    );
+
+    console.log('Saldo Actual:', response.data.current_balance, 'USD');
+    return response.data;
+  } catch (error) {
+    console.error('Consulta de saldo fallida:', error.message);
+    return null;
+  }
+}
+
+// Uso
+procesarRecarga('5566374683', 20, 'ORDEN_12345');
+</code></pre>
+
+<hr />
+<h3>Python</h3>
+<pre class="codehilite"><code class="language-python">import requests
+import json
+
+RELIER_API_URL = 'https://latcom-fix-production.up.railway.app'
+API_KEY = 'haz_prod_2025'
+CUSTOMER_ID = 'HAZ_001'
+
+def procesar_recarga(telefono, monto, referencia):
+    &quot;&quot;&quot;Procesar una recarga móvil&quot;&quot;&quot;
+    headers = {
+        'Content-Type': 'application/json',
+        'x-api-key': API_KEY,
+        'x-customer-id': CUSTOMER_ID
+    }
+
+    payload = {
+        'phone': telefono,
+        'amount': monto,
+        'reference': referencia
+    }
+
+    try:
+        response = requests.post(
+            f'{RELIER_API_URL}/api/enviadespensa/topup',
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+
+        data = response.json()
+
+        if data.get('success'):
+            print(f&quot;✅ ¡Recarga exitosa!&quot;)
+            print(f&quot;ID de Transacción: {data['transaction']['id']}&quot;)
+            print(f&quot;Monto: {data['transaction']['amount_mxn']} MXN&quot;)
+            print(f&quot;Costo: ${data['transaction']['amount_usd']} USD&quot;)
+            print(f&quot;Saldo: ${data['remaining_balance']} USD&quot;)
+            return data
+        else:
+            print(f&quot;❌ Recarga fallida: {data.get('error')}&quot;)
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print(f&quot;❌ Error de solicitud: {str(e)}&quot;)
+        return None
+
+def consultar_saldo():
+    &quot;&quot;&quot;Consultar saldo de cuenta&quot;&quot;&quot;
+    headers = {
+        'x-api-key': API_KEY,
+        'x-customer-id': CUSTOMER_ID
+    }
+
+    try:
+        response = requests.get(
+            f'{RELIER_API_URL}/api/balance',
+            headers=headers,
+            timeout=10
+        )
+
+        data = response.json()
+
+        if data.get('success'):
+            print(f&quot;💰 Saldo: ${data['current_balance']} USD&quot;)
+            return data
+        else:
+            print(f&quot;❌ Consulta de saldo fallida: {data.get('error')}&quot;)
+            return None
+
+    except requests.exceptions.RequestException as e:
+        print(f&quot;❌ Error de solicitud: {str(e)}&quot;)
+        return None
+
+# Uso
+if __name__ == '__main__':
+    consultar_saldo()
+    procesar_recarga('5566374683', 20, 'ORDEN_12345')
+</code></pre>
+
+<hr />
+<h3>PHP</h3>
+<pre class="codehilite"><code class="language-php">&lt;?php
+
+define('RELIER_API_URL', 'https://latcom-fix-production.up.railway.app');
+define('API_KEY', 'haz_prod_2025');
+define('CUSTOMER_ID', 'HAZ_001');
+
+function procesarRecarga($telefono, $monto, $referencia) {
+    $url = RELIER_API_URL . '/api/enviadespensa/topup';
+
+    $data = [
+        'phone' =&gt; $telefono,
+        'amount' =&gt; $monto,
+        'reference' =&gt; $referencia
+    ];
+
+    $headers = [
+        'Content-Type: application/json',
+        'x-api-key: ' . API_KEY,
+        'x-customer-id: ' . CUSTOMER_ID
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200) {
+        $result = json_decode($response, true);
+
+        if ($result['success']) {
+            echo &quot;✅ ¡Recarga exitosa!\n&quot;;
+            echo &quot;ID de Transacción: {$result['transaction']['id']}\n&quot;;
+            echo &quot;Monto: {$result['transaction']['amount_mxn']} MXN\n&quot;;
+            echo &quot;Costo: \${$result['transaction']['amount_usd']} USD\n&quot;;
+            echo &quot;Saldo: \${$result['remaining_balance']} USD\n&quot;;
+            return $result;
+        } else {
+            echo &quot;❌ Recarga fallida: {$result['error']}\n&quot;;
+            return null;
+        }
+    } else {
+        echo &quot;❌ Error HTTP: $httpCode\n&quot;;
+        return null;
+    }
+}
+
+function consultarSaldo() {
+    $url = RELIER_API_URL . '/api/balance';
+
+    $headers = [
+        'x-api-key: ' . API_KEY,
+        'x-customer-id: ' . CUSTOMER_ID
+    ];
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200) {
+        $result = json_decode($response, true);
+        echo &quot;💰 Saldo: \${$result['current_balance']} USD\n&quot;;
+        return $result;
+    } else {
+        echo &quot;❌ Consulta de saldo fallida\n&quot;;
+        return null;
+    }
+}
+
+// Uso
+consultarSaldo();
+procesarRecarga('5566374683', 20, 'ORDEN_12345');
+
+?&gt;
+</code></pre>
+
+<hr />
+<h3>Java</h3>
+<pre class="codehilite"><code class="language-java">import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import org.json.JSONObject;
+
+public class RelierAPI {
+    private static final String RELIER_API_URL = &quot;https://latcom-fix-production.up.railway.app&quot;;
+    private static final String API_KEY = &quot;haz_prod_2025&quot;;
+    private static final String CUSTOMER_ID = &quot;HAZ_001&quot;;
+
+    private static final HttpClient httpClient = HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .build();
+
+    public static JSONObject procesarRecarga(String telefono, int monto, String referencia) {
+        try {
+            JSONObject payload = new JSONObject();
+            payload.put(&quot;phone&quot;, telefono);
+            payload.put(&quot;amount&quot;, monto);
+            payload.put(&quot;reference&quot;, referencia);
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(RELIER_API_URL + &quot;/api/enviadespensa/topup&quot;))
+                    .header(&quot;Content-Type&quot;, &quot;application/json&quot;)
+                    .header(&quot;x-api-key&quot;, API_KEY)
+                    .header(&quot;x-customer-id&quot;, CUSTOMER_ID)
+                    .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
+                    .timeout(Duration.ofSeconds(30))
+                    .build();
+
+            HttpResponse&lt;String&gt; response = httpClient.send(request,
+                    HttpResponse.BodyHandlers.ofString());
+
+            JSONObject result = new JSONObject(response.body());
+
+            if (result.getBoolean(&quot;success&quot;)) {
+                System.out.println(&quot;✅ ¡Recarga exitosa!&quot;);
+                JSONObject transaction = result.getJSONObject(&quot;transaction&quot;);
+                System.out.println(&quot;ID de Transacción: &quot; + transaction.getString(&quot;id&quot;));
+                System.out.println(&quot;Monto: &quot; + transaction.getDouble(&quot;amount_mxn&quot;) + &quot; MXN&quot;);
+                System.out.println(&quot;Costo: $&quot; + transaction.getDouble(&quot;amount_usd&quot;) + &quot; USD&quot;);
+                System.out.println(&quot;Saldo: $&quot; + result.getDouble(&quot;remaining_balance&quot;) + &quot; USD&quot;);
+                return result;
+            } else {
+                System.out.println(&quot;❌ Recarga fallida: &quot; + result.getString(&quot;error&quot;));
+                return null;
+            }
+
+        } catch (Exception e) {
+            System.out.println(&quot;❌ Error: &quot; + e.getMessage());
+            return null;
+        }
+    }
+
+    public static JSONObject consultarSaldo() {
+        try {
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(RELIER_API_URL + &quot;/api/balance&quot;))
+                    .header(&quot;x-api-key&quot;, API_KEY)
+                    .header(&quot;x-customer-id&quot;, CUSTOMER_ID)
+                    .GET()
+                    .timeout(Duration.ofSeconds(10))
+                    .build();
+
+            HttpResponse&lt;String&gt; response = httpClient.send(request,
+                    HttpResponse.BodyHandlers.ofString());
+
+            JSONObject result = new JSONObject(response.body());
+
+            if (result.getBoolean(&quot;success&quot;)) {
+                System.out.println(&quot;💰 Saldo: $&quot; + result.getDouble(&quot;current_balance&quot;) + &quot; USD&quot;);
+                return result;
+            } else {
+                System.out.println(&quot;❌ Consulta de saldo fallida&quot;);
+                return null;
+            }
+
+        } catch (Exception e) {
+            System.out.println(&quot;❌ Error: &quot; + e.getMessage());
+            return null;
+        }
+    }
+
+    public static void main(String[] args) {
+        consultarSaldo();
+        procesarRecarga(&quot;5566374683&quot;, 20, &quot;ORDEN_12345&quot;);
+    }
+}
+</code></pre>
+
+<hr />
+<h2>Soporte</h2>
+<h3>Soporte Técnico</h3>
+<p>Para asistencia técnica, soporte de integración o preguntas sobre la API:</p>
+<ul>
+<li><strong>Email:</strong> support@relier.com</li>
+<li><strong>Tiempo de Respuesta:</strong> Dentro de 24 horas</li>
+<li><strong>Soporte de Emergencia:</strong> Disponible para problemas de producción</li>
+</ul>
+<h3>Gestión de Cuenta</h3>
+<p>Para facturación, recargas de saldo o consultas de cuenta:</p>
+<ul>
+<li><strong>Email:</strong> accounts@relier.com</li>
+<li><strong>Alertas de Saldo:</strong> Notificaciones automáticas en el umbral de $1,000 USD</li>
+</ul>
+<h3>Estado del Sistema</h3>
+<p>Monitorear la salud del sistema y tiempo de actividad:
+- <strong>Página de Estado:</strong> https://latcom-fix-production.up.railway.app/health
+- <strong>SLA de Tiempo de Actividad:</strong> 99.9%</p>
+<h3>Actualizaciones de Documentación</h3>
+<p>Este documento tiene control de versiones. Verifique las actualizaciones regularmente o contacte a soporte para la última versión.</p>
+<hr />
+<h2>Apéndice</h2>
+<h3>Operadores Soportados</h3>
+<ul>
+<li>Telcel</li>
+<li>Movistar / Telefonica</li>
+<li>AT&amp;T México</li>
+<li>Unefon</li>
+<li>Virgin Mobile México</li>
+</ul>
+<h3>Denominaciones Disponibles (MXN)</h3>
+<table>
+<thead>
+<tr>
+<th>Monto</th>
+<th>Aprox. USD*</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>10</td>
+<td>~$0.54</td>
+</tr>
+<tr>
+<td>20</td>
+<td>~$1.08</td>
+</tr>
+<tr>
+<td>30</td>
+<td>~$1.62</td>
+</tr>
+<tr>
+<td>40</td>
+<td>~$2.16</td>
+</tr>
+<tr>
+<td>50</td>
+<td>~$2.70</td>
+</tr>
+<tr>
+<td>60</td>
+<td>~$3.24</td>
+</tr>
+<tr>
+<td>70</td>
+<td>~$3.78</td>
+</tr>
+<tr>
+<td>80</td>
+<td>~$4.32</td>
+</tr>
+<tr>
+<td>90</td>
+<td>~$4.86</td>
+</tr>
+<tr>
+<td>100</td>
+<td>~$5.40</td>
+</tr>
+<tr>
+<td>150</td>
+<td>~$8.10</td>
+</tr>
+<tr>
+<td>200</td>
+<td>~$10.80</td>
+</tr>
+<tr>
+<td>300</td>
+<td>~$16.20</td>
+</tr>
+<tr>
+<td>500</td>
+<td>~$27.00</td>
+</tr>
+</tbody>
+</table>
+<p>*Los costos en USD son aproximados y se basan en tipos de cambio en tiempo real (≈18.5 MXN/USD)</p>
+<h3>Información de Tipo de Cambio</h3>
+<ul>
+<li>Los tipos de cambio se actualizan en tiempo real</li>
+<li>Las tasas son competitivas y transparentes</li>
+<li>Detalles completos de forex incluidos en cada respuesta de transacción</li>
+<li>Tasas históricas disponibles a través de registros de transacciones</li>
+</ul>
+<h3>Reconciliación</h3>
+<ul>
+<li>Registros de transacciones disponibles a través del panel de administración</li>
+<li>Funcionalidad de exportación CSV para contabilidad</li>
+<li>Informes diarios/mensuales disponibles bajo solicitud</li>
+<li>Todas las transacciones incluyen IDs únicos para seguimiento</li>
+</ul>
+<hr />
+<p><strong>Fin del Documento</strong></p>
+<p><em>Para preguntas sobre este documento o la API de Relier, por favor contacte al gerente de cuenta de HAZ Group o soporte técnico.</em></p>
+<p><strong>Última Actualización:</strong> 13 de Octubre, 2025
+<strong>Versión del Documento:</strong> 1.0
+<strong>Versión de API:</strong> v1</p>
+</body>
+</html>

@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Via.One - POS Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 2em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .store-info {
+            text-align: right;
+        }
+
+        .store-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .logout-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .product-btn {
+            background: white;
+            border: none;
+            padding: 40px 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-align: center;
+        }
+
+        .product-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .product-btn:active {
+            transform: translateY(0);
+        }
+
+        .product-icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        .product-name {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .product-fee {
+            color: #10b981;
+            font-size: 0.9em;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .close-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .submit-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .stats-section {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .stats-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .stat-label {
+            color: #6b7280;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #10b981;
+        }
+
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #10b981;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ef4444;
+        }
+
+        .voucher-section {
+            background: #fef3c7;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .voucher-section img {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+        }
+
+        .voucher-section a {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">Via.One</div>
+            <div class="store-info">
+                <div class="store-name" id="storeName">Loading...</div>
+                <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="products-grid">
+            <button class="product-btn" onclick="openModal('mobile')">
+                <div class="product-icon">📱</div>
+                <div class="product-name">Recarga Móvil</div>
+                <div class="product-fee">Comisión: $<span id="mobileFee">5</span> MXN</div>
+            </button>
+
+            <button class="product-btn" onclick="openModal('spei')">
+                <div class="product-icon">🏦</div>
+                <div class="product-name">SPEI Bancario</div>
+                <div class="product-fee">Comisión: $<span id="speiFee">10</span> MXN</div>
+            </button>
+
+            <button class="product-btn" onclick="openModal('oxxo')">
+                <div class="product-icon">🎁</div>
+                <div class="product-name">Tarjeta Regalo</div>
+                <div class="product-fee">Comisión: $<span id="oxxoFee">5</span> MXN</div>
+            </button>
+        </div>
+
+        <!-- Today's Stats -->
+        <div class="stats-section">
+            <div class="stats-title">📊 Ventas de Hoy</div>
+            <div class="stat-item">
+                <span class="stat-label">Transacciones:</span>
+                <span class="stat-value" id="todayCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Total Ventas:</span>
+                <span class="stat-value">$<span id="todayTotal">0.00</span> MXN</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Ganancia:</span>
+                <span class="stat-value">$<span id="todayProfit">0.00</span> MXN</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Topup Modal -->
+    <div id="mobileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">📱 Recarga Móvil</div>
+                <button class="close-btn" onclick="closeModal('mobile')">×</button>
+            </div>
+            <div id="mobileResult"></div>
+            <form id="mobileForm" onsubmit="processMobile(event)">
+                <div class="form-group">
+                    <label>Número de Teléfono</label>
+                    <input type="tel" id="mobilePhone" placeholder="5512345678" required pattern="[0-9]{10}">
+                </div>
+                <div class="form-group">
+                    <label>Monto (MXN)</label>
+                    <input type="number" id="mobileAmount" placeholder="20" required min="10" max="500">
+                </div>
+                <button type="submit" class="submit-btn" id="mobileSubmit">Procesar Recarga</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- SPEI Modal -->
+    <div id="speiModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">🏦 SPEI Bancario</div>
+                <button class="close-btn" onclick="closeModal('spei')">×</button>
+            </div>
+            <div id="speiResult"></div>
+            <form id="speiForm" onsubmit="processSpei(event)">
+                <div class="form-group">
+                    <label>Número de Cuenta</label>
+                    <input type="text" id="speiAccount" placeholder="012345678901234567" required maxlength="18">
+                </div>
+                <div class="form-group">
+                    <label>Nombre del Titular</label>
+                    <input type="text" id="speiName" placeholder="JUAN PEREZ" required>
+                </div>
+                <div class="form-group">
+                    <label>Monto (MXN)</label>
+                    <input type="number" id="speiAmount" placeholder="500" required min="10">
+                </div>
+                <button type="submit" class="submit-btn" id="speiSubmit">Procesar SPEI</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- OXXO Gift Card Modal -->
+    <div id="oxxoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">🎁 Tarjeta Regalo OXXO</div>
+                <button class="close-btn" onclick="closeModal('oxxo')">×</button>
+            </div>
+            <div id="oxxoResult"></div>
+            <form id="oxxoForm" onsubmit="processOxxo(event)">
+                <div class="form-group">
+                    <label>Monto (MXN)</label>
+                    <input type="number" id="oxxoAmount" placeholder="100" required min="10">
+                </div>
+                <button type="submit" class="submit-btn" id="oxxoSubmit">Generar Tarjeta</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = window.location.origin;
+        let storeData = null;
+
+        // Load store data on page load
+        async function loadStoreData() {
+            try {
+                // Get store session from localStorage
+                const session = JSON.parse(localStorage.getItem('viaone_session') || '{}');
+
+                if (!session.store_id) {
+                    window.location.href = '/store-login.html';
+                    return;
+                }
+
+                // Load store details and pricing
+                const response = await fetch(`${BASE_URL}/api/store/details`, {
+                    headers: {
+                        'x-store-id': session.store_id,
+                        'x-store-token': session.token
+                    }
+                });
+
+                if (response.ok) {
+                    storeData = await response.json();
+                    document.getElementById('storeName').textContent = storeData.store_name;
+
+                    // Update pricing
+                    storeData.pricing.forEach(p => {
+                        if (p.product_type === 'mobile_topup') {
+                            document.getElementById('mobileFee').textContent = p.retail_fee;
+                        } else if (p.product_type === 'spei') {
+                            document.getElementById('speiFee').textContent = p.retail_fee;
+                        } else if (p.product_type === 'oxxo_gift_card') {
+                            document.getElementById('oxxoFee').textContent = p.retail_fee;
+                        }
+                    });
+
+                    // Load today's stats
+                    loadStats();
+                } else {
+                    logout();
+                }
+            } catch (error) {
+                console.error('Failed to load store data:', error);
+                logout();
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const session = JSON.parse(localStorage.getItem('viaone_session') || '{}');
+                const response = await fetch(`${BASE_URL}/api/store/stats/today`, {
+                    headers: {
+                        'x-store-id': session.store_id,
+                        'x-store-token': session.token
+                    }
+                });
+
+                if (response.ok) {
+                    const stats = await response.json();
+                    document.getElementById('todayCount').textContent = stats.count;
+                    document.getElementById('todayTotal').textContent = stats.total.toFixed(2);
+                    document.getElementById('todayProfit').textContent = stats.profit.toFixed(2);
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        function openModal(type) {
+            document.getElementById(type + 'Modal').classList.add('active');
+        }
+
+        function closeModal(type) {
+            document.getElementById(type + 'Modal').classList.remove('active');
+            document.getElementById(type + 'Form').reset();
+            document.getElementById(type + 'Result').innerHTML = '';
+        }
+
+        async function processMobile(event) {
+            event.preventDefault();
+            const btn = document.getElementById('mobileSubmit');
+            btn.disabled = true;
+            btn.textContent = 'Procesando...';
+
+            const session = JSON.parse(localStorage.getItem('viaone_session') || '{}');
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/store/mobile-topup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-store-id': session.store_id,
+                        'x-store-token': session.token
+                    },
+                    body: JSON.stringify({
+                        phone: document.getElementById('mobilePhone').value,
+                        amount: parseFloat(document.getElementById('mobileAmount').value)
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('mobileResult').innerHTML = `
+                        <div class="success-message">
+                            ✅ ¡Recarga exitosa!<br>
+                            Folio: ${result.transaction_id}<br>
+                            Ganancia: $${result.profit.toFixed(2)} MXN
+                        </div>
+                    `;
+                    document.getElementById('mobileForm').reset();
+                    loadStats();
+                } else {
+                    document.getElementById('mobileResult').innerHTML = `
+                        <div class="error-message">❌ ${result.error}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('mobileResult').innerHTML = `
+                    <div class="error-message">❌ Error: ${error.message}</div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Procesar Recarga';
+            }
+        }
+
+        async function processSpei(event) {
+            event.preventDefault();
+            const btn = document.getElementById('speiSubmit');
+            btn.disabled = true;
+            btn.textContent = 'Procesando...';
+
+            const session = JSON.parse(localStorage.getItem('viaone_session') || '{}');
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/store/spei`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-store-id': session.store_id,
+                        'x-store-token': session.token
+                    },
+                    body: JSON.stringify({
+                        accountNo: document.getElementById('speiAccount').value,
+                        accountName: document.getElementById('speiName').value,
+                        amount: parseFloat(document.getElementById('speiAmount').value)
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('speiResult').innerHTML = `
+                        <div class="success-message">
+                            ✅ ¡SPEI iniciado!<br>
+                            Folio: ${result.transaction_id}<br>
+                            Ganancia: $${result.profit.toFixed(2)} MXN
+                        </div>
+                    `;
+                    document.getElementById('speiForm').reset();
+                    loadStats();
+                } else {
+                    document.getElementById('speiResult').innerHTML = `
+                        <div class="error-message">❌ ${result.error}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('speiResult').innerHTML = `
+                    <div class="error-message">❌ Error: ${error.message}</div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Procesar SPEI';
+            }
+        }
+
+        async function processOxxo(event) {
+            event.preventDefault();
+            const btn = document.getElementById('oxxoSubmit');
+            btn.disabled = true;
+            btn.textContent = 'Generando...';
+
+            const session = JSON.parse(localStorage.getItem('viaone_session') || '{}');
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/store/oxxo-voucher`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-store-id': session.store_id,
+                        'x-store-token': session.token
+                    },
+                    body: JSON.stringify({
+                        amount: parseFloat(document.getElementById('oxxoAmount').value)
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('oxxoResult').innerHTML = `
+                        <div class="success-message">
+                            ✅ ¡Tarjeta generada!<br>
+                            Folio: ${result.transaction_id}<br>
+                            Ganancia: $${result.profit.toFixed(2)} MXN
+                        </div>
+                        <div class="voucher-section">
+                            <h3>Código de Barras</h3>
+                            <img src="${result.barcodeUrl}" alt="Barcode">
+                            <br>
+                            <a href="${result.paymentUrl}" target="_blank">Ver Voucher Completo</a>
+                        </div>
+                    `;
+                    document.getElementById('oxxoForm').reset();
+                    loadStats();
+                } else {
+                    document.getElementById('oxxoResult').innerHTML = `
+                        <div class="error-message">❌ ${result.error}</div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('oxxoResult').innerHTML = `
+                    <div class="error-message">❌ Error: ${error.message}</div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generar Tarjeta';
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('viaone_session');
+            window.location.href = '/store-login.html';
+        }
+
+        // Load on page load
+        loadStoreData();
+
+        // Refresh stats every 30 seconds
+        setInterval(loadStats, 30000);
+    </script>
+</body>
+</html>

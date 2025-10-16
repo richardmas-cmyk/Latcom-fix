@@ -1,0 +1,66 @@
+================================================================================
+LATCOM API ERROR REPORT
+================================================================================
+Date: October 14, 2025, 7:26 PM UTC
+Customer: EnviaDespensa
+Issue: "IP Address not authorized" error blocking all topup requests
+
+================================================================================
+REQUEST DETAILS
+================================================================================
+URL: https://lattest.mitopup.com/api/dislogin
+Method: POST
+Headers: { "Content-Type": "application/json" }
+
+REQUEST BODY:
+{
+  "username": "enviadespensa",
+  "password": "ENV!d32025#",
+  "dist_api": "38aa13413d1431fba1824f2633c2b7d67f5fffcb91b043629a0d1fe09df2fb8d",
+  "user_uid": "20060916"
+}
+
+================================================================================
+RESPONSE FROM LATCOM
+================================================================================
+HTTP Status Code: 400 Bad Request
+Server: Apache/2.4.52 (Ubuntu)
+Content-Type: application/json
+Date: Tue, 14 Oct 2025 19:24:27 GMT
+
+RESPONSE BODY:
+{
+  "error": "Validation Error",
+  "message": "IP Address not authorized",
+  "status": 400,
+  "timestamp": "2025-10-14T19:24:27.178+00:00"
+}
+
+================================================================================
+OUR SERVER DETAILS
+================================================================================
+Outbound IP Address: 162.220.234.15
+Server: Railway (latcom-fix-production.up.railway.app)
+Platform: Node.js production server
+
+================================================================================
+ACTION REQUIRED FROM LATCOM
+================================================================================
+Please whitelist the following IP address for user "enviadespensa":
+
+IP Address: 162.220.234.15
+
+This IP needs access to:
+- Environment: lattest.mitopup.com (test environment)
+- User: enviadespensa
+- User UID: 20060916
+
+This is blocking ALL our topup transactions.
+The system was working yesterday, so either:
+1. The Railway IP changed, OR
+2. The whitelist was removed
+
+================================================================================
+URGENCY: HIGH
+This is blocking production transactions for our customers.
+================================================================================

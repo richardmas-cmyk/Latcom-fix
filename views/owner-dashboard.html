@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Via.One - Panel del Dueño</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            font-size: 2em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .logout-btn {
+            padding: 10px 20px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .stores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .store-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .store-card.inactive {
+            opacity: 0.6;
+        }
+
+        .store-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #374151;
+        }
+
+        .store-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .stat-label {
+            color: #6b7280;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #374151;
+        }
+
+        .stat-value.profit {
+            color: #10b981;
+        }
+
+        .section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #374151;
+        }
+
+        .pricing-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .pricing-table th {
+            background: #f3f4f6;
+            padding: 12px;
+            text-align: left;
+            font-weight: bold;
+            color: #374151;
+        }
+
+        .pricing-table td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .pricing-input {
+            width: 100px;
+            padding: 8px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+
+        .update-btn {
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .update-btn:hover {
+            opacity: 0.9;
+        }
+
+        .transactions-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+
+        .transactions-table th {
+            background: #f3f4f6;
+            padding: 10px;
+            text-align: left;
+            font-weight: bold;
+            color: #374151;
+            position: sticky;
+            top: 0;
+        }
+
+        .transactions-table td {
+            padding: 10px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .status-SUCCESS {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-FAILED {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-PENDING {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-group label {
+            font-size: 0.9em;
+            color: #6b7280;
+            font-weight: 600;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .summary-card .label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+
+        .summary-card .value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .refresh-indicator {
+            color: #6b7280;
+            font-size: 0.85em;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">Via.One 🏢</div>
+        <div class="header-right">
+            <span id="ownerName">Panel del Dueño</span>
+            <span class="refresh-indicator">🔄 Auto-actualiza cada 30s</span>
+            <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="label">Tiendas Activas</div>
+            <div class="value" id="activeStores">0</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Transacciones Hoy</div>
+            <div class="value" id="totalTransactions">0</div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Ingresos Hoy</div>
+            <div class="value">$<span id="totalRevenue">0</span></div>
+        </div>
+        <div class="summary-card">
+            <div class="label">Ganancia Hoy</div>
+            <div class="value">$<span id="totalProfit">0</span></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">📊 Estado de Tiendas - Hoy</div>
+        <div class="stores-grid" id="storesGrid">
+            <!-- Store cards will be populated here -->
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">💰 Configuración de Tarifas</div>
+        <table class="pricing-table" id="pricingTable">
+            <thead>
+                <tr>
+                    <th>Tienda</th>
+                    <th>Producto</th>
+                    <th>Costo por Transacción</th>
+                    <th>Tarifa al Cliente</th>
+                    <th>Ganancia</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="pricingBody">
+                <!-- Pricing rows will be populated here -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">📋 Transacciones Recientes</div>
+
+        <div class="filters">
+            <div class="filter-group">
+                <label>Tienda</label>
+                <select id="filterStore">
+                    <option value="">Todas las tiendas</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Desde</label>
+                <input type="date" id="filterDateFrom">
+            </div>
+            <div class="filter-group">
+                <label>Hasta</label>
+                <input type="date" id="filterDateTo">
+            </div>
+            <button class="update-btn" onclick="loadTransactions()" style="align-self: flex-end;">Filtrar</button>
+        </div>
+
+        <div style="overflow-x: auto; max-height: 500px; overflow-y: auto;">
+            <table class="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tienda</th>
+                        <th>Producto</th>
+                        <th>Teléfono/Cuenta</th>
+                        <th>Monto</th>
+                        <th>Tarifa</th>
+                        <th>Ganancia</th>
+                        <th>Estado</th>
+                        <th>ID Transacción</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsBody">
+                    <!-- Transactions will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = window.location.origin;
+        let session = null;
+
+        // Check authentication
+        const sessionData = localStorage.getItem('viaone_session');
+        if (!sessionData) {
+            window.location.href = '/store-login.html';
+        } else {
+            session = JSON.parse(sessionData);
+            if (session.type !== 'owner') {
+                window.location.href = '/store-login.html';
+            }
+        }
+
+        async function loadDashboard() {
+            await Promise.all([
+                loadStores(),
+                loadPricing(),
+                loadTransactions()
+            ]);
+        }
+
+        async function loadStores() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/owner/stores`, {
+                    headers: {
+                        'x-store-token': session.token
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const stores = result.stores;
+
+                    // Update summary cards
+                    const activeStores = stores.filter(s => s.is_active).length;
+                    const totalTrans = stores.reduce((sum, s) => sum + parseInt(s.today_transactions || 0), 0);
+                    const totalRev = stores.reduce((sum, s) => sum + parseFloat(s.today_revenue || 0), 0);
+                    const totalProf = stores.reduce((sum, s) => sum + parseFloat(s.today_profit || 0), 0);
+
+                    document.getElementById('activeStores').textContent = activeStores;
+                    document.getElementById('totalTransactions').textContent = totalTrans;
+                    document.getElementById('totalRevenue').textContent = totalRev.toFixed(2);
+                    document.getElementById('totalProfit').textContent = totalProf.toFixed(2);
+
+                    // Populate stores grid
+                    const grid = document.getElementById('storesGrid');
+                    grid.innerHTML = stores.map(store => `
+                        <div class="store-card ${!store.is_active ? 'inactive' : ''}">
+                            <div class="store-name">${store.store_name}</div>
+                            <div class="store-stats">
+                                <div class="stat-row">
+                                    <span class="stat-label">Transacciones</span>
+                                    <span class="stat-value">${store.today_transactions || 0}</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Ingresos</span>
+                                    <span class="stat-value">$${parseFloat(store.today_revenue || 0).toFixed(2)} MXN</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">Ganancia</span>
+                                    <span class="stat-value profit">$${parseFloat(store.today_profit || 0).toFixed(2)} MXN</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    // Update store filter dropdown
+                    const filterStore = document.getElementById('filterStore');
+                    filterStore.innerHTML = '<option value="">Todas las tiendas</option>' +
+                        stores.map(s => `<option value="${s.store_id}">${s.store_name}</option>`).join('');
+                }
+            } catch (error) {
+                console.error('Error loading stores:', error);
+            }
+        }
+
+        async function loadPricing() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/owner/pricing`, {
+                    headers: {
+                        'x-store-token': session.token
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const pricing = result.pricing;
+
+                    const body = document.getElementById('pricingBody');
+                    body.innerHTML = pricing.map(p => {
+                        const profit = parseFloat(p.retail_fee) - parseFloat(p.cost_per_transaction);
+                        return `
+                            <tr>
+                                <td>${p.store_id}</td>
+                                <td>${p.product_name}</td>
+                                <td>$${parseFloat(p.cost_per_transaction).toFixed(2)} MXN</td>
+                                <td>
+                                    <input type="number"
+                                           class="pricing-input"
+                                           id="fee_${p.store_id}_${p.product_type}"
+                                           value="${parseFloat(p.retail_fee).toFixed(2)}"
+                                           step="0.01">
+                                </td>
+                                <td>$${profit.toFixed(2)} MXN</td>
+                                <td>
+                                    <button class="update-btn" onclick="updatePricing('${p.store_id}', '${p.product_type}')">
+                                        Actualizar
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Error loading pricing:', error);
+            }
+        }
+
+        async function updatePricing(storeId, productType) {
+            const inputId = `fee_${storeId}_${productType}`;
+            const newFee = document.getElementById(inputId).value;
+
+            try {
+                const response = await fetch(`${BASE_URL}/api/owner/update-pricing`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-store-token': session.token
+                    },
+                    body: JSON.stringify({
+                        store_id: storeId,
+                        product_type: productType,
+                        retail_fee: parseFloat(newFee)
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Tarifa actualizada exitosamente');
+                    loadPricing();
+                } else {
+                    alert('❌ Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('❌ Error de conexión: ' + error.message);
+            }
+        }
+
+        async function loadTransactions() {
+            try {
+                const dateFrom = document.getElementById('filterDateFrom').value;
+                const dateTo = document.getElementById('filterDateTo').value;
+                const storeId = document.getElementById('filterStore').value;
+
+                let url = `${BASE_URL}/api/owner/transactions?`;
+                if (dateFrom) url += `date_from=${dateFrom}&`;
+                if (dateTo) url += `date_to=${dateTo}&`;
+                if (storeId) url += `store_id=${storeId}&`;
+
+                const response = await fetch(url, {
+                    headers: {
+                        'x-store-token': session.token
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const transactions = result.transactions;
+
+                    const body = document.getElementById('transactionsBody');
+
+                    if (transactions.length === 0) {
+                        body.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 20px; color: #6b7280;">No hay transacciones</td></tr>';
+                    } else {
+                        body.innerHTML = transactions.map(t => `
+                            <tr>
+                                <td>${new Date(t.created_at).toLocaleString('es-MX')}</td>
+                                <td>${t.store_name || t.store_id}</td>
+                                <td>${t.product_type}</td>
+                                <td>${t.phone || t.account_no || '-'}</td>
+                                <td>$${parseFloat(t.amount).toFixed(2)}</td>
+                                <td>$${parseFloat(t.retail_fee).toFixed(2)}</td>
+                                <td>$${parseFloat(t.profit).toFixed(2)}</td>
+                                <td><span class="status-badge status-${t.status}">${t.status}</span></td>
+                                <td style="font-size: 0.8em;">${t.transaction_id}</td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('viaone_session');
+            window.location.href = '/store-login.html';
+        }
+
+        // Set default date filters (last 7 days)
+        const today = new Date();
+        const lastWeek = new Date(today);
+        lastWeek.setDate(lastWeek.getDate() - 7);
+
+        document.getElementById('filterDateFrom').value = lastWeek.toISOString().split('T')[0];
+        document.getElementById('filterDateTo').value = today.toISOString().split('T')[0];
+
+        // Load dashboard on page load
+        loadDashboard();
+
+        // Auto-refresh every 30 seconds
+        setInterval(loadDashboard, 30000);
+    </script>
+</body>
+</html>

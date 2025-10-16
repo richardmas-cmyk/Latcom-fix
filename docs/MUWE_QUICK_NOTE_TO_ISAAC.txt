@@ -1,0 +1,89 @@
+================================================================================
+QUICK NOTE TO ISAAC - MUWE OXXO & PRODUCTION CREDENTIALS
+================================================================================
+
+Hola Isaac,
+
+¡Excelente noticia! Hemos completado todas las pruebas en sandbox y TODO está funcionando perfectamente.
+
+✅ PRUEBAS COMPLETADAS (Octubre 14, 2025):
+   - Bill Payment API: 71 compañías encontradas ✅
+   - Mobile Topup API: 29 operadores encontrados ✅
+   - OXXO Voucher Creation: EXITOSO ✅
+   - Creamos voucher de 10 MXN con éxito
+   - Todos los endpoints funcionando correctamente
+
+📋 SOLICITUD DE CREDENCIALES DE PRODUCCIÓN:
+
+Necesitamos credenciales de producción para dos APIs:
+
+1. BILL PAYMENT API (ya tenemos sandbox):
+   - Production Merchant Code
+   - Production App ID
+   - Production Secret Key
+
+2. OXXO COLLECTION API (IMPORTANTE):
+   - Production mchId (para OXXO)
+   - Production appId (para OXXO)
+   - Production Secret Key (para OXXO)
+   - ⚠️ CONFIRMAR que el canal OXXO esté habilitado para nuestra cuenta
+
+NOTA: Descubrimos que nuestra cuenta de Monstertech (880225000000152) tiene
+acceso al Bill Payment API pero NO al OXXO Collection API. Por favor confirmar
+que ambos servicios estén habilitados en producción.
+
+🎯 URL de producción: https://pay.sipelatam.mx (confirmar)
+
+¿Podrías ayudarnos a obtener estas credenciales lo antes posible?
+
+Estamos listos para lanzar en cuanto tengamos las credenciales de producción.
+
+Muchas gracias por tu apoyo,
+Richard Mas
+Latcom / Exodus-II
+
+================================================================================
+ENGLISH VERSION
+================================================================================
+
+Hi Isaac,
+
+Great news! We've completed all sandbox testing and EVERYTHING is working perfectly.
+
+✅ TESTS COMPLETED (October 14, 2025):
+   - Bill Payment API: 71 companies found ✅
+   - Mobile Topup API: 29 operators found ✅
+   - OXXO Voucher Creation: SUCCESS ✅
+   - Created 10 MXN voucher successfully
+   - All endpoints working correctly
+
+📋 PRODUCTION CREDENTIALS REQUEST:
+
+We need production credentials for two APIs:
+
+1. BILL PAYMENT API (we have sandbox):
+   - Production Merchant Code
+   - Production App ID
+   - Production Secret Key
+
+2. OXXO COLLECTION API (IMPORTANT):
+   - Production mchId (for OXXO)
+   - Production appId (for OXXO)
+   - Production Secret Key (for OXXO)
+   - ⚠️ CONFIRM that OXXO channel is enabled for our account
+
+NOTE: We discovered that our Monstertech account (880225000000152) has
+access to Bill Payment API but NOT OXXO Collection API. Please confirm
+both services are enabled in production.
+
+🎯 Production URL: https://pay.sipelatam.mx (please confirm)
+
+Could you help us obtain these credentials as soon as possible?
+
+We're ready to launch once we have the production credentials.
+
+Thank you for your support,
+Richard Mas
+Latcom / Exodus-II
+
+================================================================================

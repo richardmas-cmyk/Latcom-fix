@@ -1,0 +1,165 @@
+================================================================================
+DRAFT EMAIL TO ISAAC SUAREZ - MUWE PRODUCTION CREDENTIALS REQUEST
+================================================================================
+
+To: isaac.suarez@muwe.mx
+Cc: mario.salas@muwe.mx, jdcastillo@latcom.co, alfredov@latcom.co
+Subject: Solicitud de credenciales de producción MUWE - Pruebas exitosas en Sandbox
+
+Hola Isaac,
+
+¡Muchas gracias por reactivar nuestro servicio!
+
+Te confirmo que hemos completado las pruebas en el ambiente de sandbox y TODO está funcionando perfectamente:
+
+✅ Pruebas completadas con éxito (Octubre 14, 2025):
+   - Conexión a https://test.sipelatam.mx: Exitosa
+   - Autenticación MD5: Funcionando correctamente
+   - Obtener lista de compañías de pago: 71 empresas encontradas
+   - Obtener lista de operadores móviles: 29 operadores encontrados
+   - Creación de voucher OXXO: Exitoso (10 MXN)
+   - Firma MD5 y todos los endpoints: Verificados
+
+📋 Detalles de las pruebas en Sandbox:
+   - Merchant Code: 880225000000152
+   - App ID: 00152018863
+   - Base URL: https://test.sipelatam.mx
+   - Todas las APIs funcionando correctamente
+
+Como mencionaste en tu último correo, estamos listos para probar en PRD (producción).
+
+🎯 Solicitud de credenciales de producción:
+
+Por favor, ¿podrías proporcionarnos las credenciales para el ambiente de producción?
+
+Necesitamos:
+1. Production Merchant Code
+2. Production App ID
+3. Production Merchant ID (mchId)
+4. Production Secret Key
+5. Confirmación de la URL de producción (¿https://pay.sipelatam.mx?)
+
+También nos gustaría coordinar contigo las pruebas en producción para asegurar que todo funcione correctamente antes del lanzamiento.
+
+📊 Contexto del proyecto Exodus-II:
+
+Como Alfredo mencionó, estamos integrando MUWE en nuestro nuevo entorno Exodus-II basado en AI. Ya tenemos conexión con:
+- ✅ Movistar
+- ✅ AT&T Mexico
+- ✅ Telcel
+- 🔄 Bait (esta semana)
+
+Estamos muy emocionados de lanzar la batería completa de servicios:
+- Mobile topups
+- Bill payments
+- Gift cards
+- OXXO payments
+- SPEI transfers
+
+🚀 Próximos pasos:
+
+1. Recibir credenciales de producción
+2. Configurar ambiente de producción
+3. Coordinar pruebas contigo en PRD
+4. Verificar transacciones reales
+5. Lanzamiento
+
+¿Podrías ayudarnos a obtener las credenciales de producción lo antes posible? Estamos listos para las pruebas.
+
+Muchas gracias por tu excelente soporte y disponibilidad para ayudarnos.
+
+Saludos cordiales,
+
+Richard Mas
+Latcom / Exodus-II Integration Team
+richard.mas@latcom.co
+
+---
+
+CC: Juan Carlos del Castillo (jdcastillo@latcom.co)
+CC: Alfredo Villalobos (alfredov@latcom.co)
+CC: Mario Salas (mario.salas@muwe.mx)
+
+================================================================================
+ENGLISH VERSION (if needed)
+================================================================================
+
+To: isaac.suarez@muwe.mx
+Cc: mario.salas@muwe.mx, jdcastillo@latcom.co, alfredov@latcom.co
+Subject: MUWE Production Credentials Request - Successful Sandbox Testing
+
+Hi Isaac,
+
+Thank you so much for reactivating our service!
+
+I'm pleased to confirm that we have completed testing in the sandbox environment and EVERYTHING is working perfectly:
+
+✅ Tests completed successfully (October 14, 2025):
+   - Connection to https://test.sipelatam.mx: Successful
+   - MD5 Authentication: Working correctly
+   - Get bill companies list: 71 companies found
+   - Get mobile operators list: 29 operators found
+   - OXXO voucher creation: Successful (10 MXN)
+   - MD5 signature and all endpoints: Verified
+
+📋 Sandbox testing details:
+   - Merchant Code: 880225000000152
+   - App ID: 00152018863
+   - Base URL: https://test.sipelatam.mx
+   - All APIs working correctly
+
+As you mentioned in your last email, we're ready to test in PRD (production).
+
+🎯 Production credentials request:
+
+Could you please provide us with the production environment credentials?
+
+We need:
+1. Production Merchant Code
+2. Production App ID
+3. Production Merchant ID (mchId)
+4. Production Secret Key
+5. Production URL confirmation (https://pay.sipelatam.mx?)
+
+We would also like to coordinate production testing with you to ensure everything works correctly before launch.
+
+📊 Exodus-II project context:
+
+As Alfredo mentioned, we're integrating MUWE into our new AI-based Exodus-II environment. We already have connections with:
+- ✅ Movistar
+- ✅ AT&T Mexico
+- ✅ Telcel
+- 🔄 Bait (this week)
+
+We're very excited to launch the complete service suite:
+- Mobile topups
+- Bill payments
+- Gift cards
+- OXXO payments
+- SPEI transfers
+
+🚀 Next steps:
+
+1. Receive production credentials
+2. Configure production environment
+3. Coordinate testing with you in PRD
+4. Verify real transactions
+5. Launch
+
+Could you help us obtain the production credentials as soon as possible? We're ready for testing.
+
+Thank you for your excellent support and availability to help us.
+
+Best regards,
+
+Richard Mas
+Latcom / Exodus-II Integration Team
+richard.mas@latcom.co
+
+---
+
+CC: Juan Carlos del Castillo (jdcastillo@latcom.co)
+CC: Alfredo Villalobos (alfredov@latcom.co)
+CC: Mario Salas (mario.salas@muwe.mx)
+
+================================================================================

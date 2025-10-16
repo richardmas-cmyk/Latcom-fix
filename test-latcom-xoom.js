@@ -57,7 +57,7 @@ async function testLatcomXoom() {
 
     // Test 4: Phone number lookup
     console.log('\n📱 Test 4: Phone Number Lookup');
-    const phoneNumber = '5566374683';
+    const phoneNumber = '5543031844';
     try {
         const lookup = await provider.lookupPhone(phoneNumber);
         console.log('Phone lookup result:', JSON.stringify(lookup, null, 2));

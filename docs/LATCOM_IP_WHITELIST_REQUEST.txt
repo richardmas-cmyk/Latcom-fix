@@ -1,0 +1,108 @@
+================================================================================
+LATCOM IP WHITELIST REQUEST - URGENT
+================================================================================
+Date: October 14, 2025, 9:10 PM UTC
+Customer: EnviaDespensa (enviadespensa)
+Issue: IP Address not authorized - Production system down
+Priority: CRITICAL - Blocking all customer transactions
+
+================================================================================
+ISSUE DESCRIPTION
+================================================================================
+Our production server IP is being blocked by Latcom's IP whitelist.
+This was working fine for weeks and suddenly stopped working.
+
+Request: Please whitelist our production IP immediately.
+
+================================================================================
+IP ADDRESS TO WHITELIST
+================================================================================
+IP Address: 162.220.234.15
+Server: Railway Production (latcom-fix-production.up.railway.app)
+Environment: Production
+
+================================================================================
+ACCOUNT DETAILS
+================================================================================
+Username: enviadespensa
+User UID: 20060916
+Dist API Key: 38aa13413d1431fba1824f2633c2b7d67f5fffcb91b043629a0d1fe09df2fb8d
+API Endpoint: https://lattest.mitopup.com/api/dislogin
+
+================================================================================
+TEST REQUEST FROM OUR SERVER (October 14, 2025, 9:10 PM UTC)
+================================================================================
+
+REQUEST DETAILS:
+----------------
+URL: https://lattest.mitopup.com/api/dislogin
+Method: POST
+Headers: {"Content-Type": "application/json"}
+Source IP: 162.220.234.15
+
+REQUEST BODY:
+-------------
+{
+  "username": "enviadespensa",
+  "password": "ENV!d32025#",
+  "dist_api": "38aa13413d1431fba1824f2633c2b7d67f5fffcb91b043629a0d1fe09df2fb8d",
+  "user_uid": "20060916"
+}
+
+RESPONSE FROM LATCOM:
+---------------------
+HTTP Status: 400 Bad Request
+Timestamp: 2025-10-14T21:10:40.006+00:00
+
+{
+  "error": "Validation Error",
+  "message": "IP Address not authorized",
+  "status": 400,
+  "timestamp": "2025-10-14T21:10:40.006+00:00"
+}
+
+================================================================================
+PROOF THAT CREDENTIALS ARE CORRECT
+================================================================================
+The same credentials work when tested from Postman (different IP).
+This confirms:
+  ✅ Username is correct
+  ✅ Password is correct
+  ✅ Dist API key is correct
+  ✅ User UID is correct
+  ❌ Only the IP address 162.220.234.15 is blocked
+
+================================================================================
+ACTION REQUIRED
+================================================================================
+Please whitelist IP address 162.220.234.15 for user "enviadespensa"
+
+This IP needs access to:
+  - Environment: lattest.mitopup.com (test/production environment)
+  - User: enviadespensa
+  - User UID: 20060916
+  - All Latcom API endpoints
+
+================================================================================
+BUSINESS IMPACT
+================================================================================
+CRITICAL: This is blocking ALL production transactions for our customers.
+
+- Production system has been down since the IP was removed from whitelist
+- Unable to process any Latcom/Telcel mobile topups
+- Multiple customers affected (EnviaDespensa, SmartBiz Telecom, etc.)
+- Lost revenue and customer trust
+
+This was working perfectly for weeks. The only change is that our IP was
+removed from the whitelist on Latcom's side.
+
+================================================================================
+CONTACT INFORMATION
+================================================================================
+If you need any additional information or verification, please contact us
+immediately. We are available 24/7 to resolve this issue.
+
+================================================================================
+URGENCY: CRITICAL - PRODUCTION DOWN
+Please whitelist 162.220.234.15 immediately.
+================================================================================
