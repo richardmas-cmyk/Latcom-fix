@@ -204,6 +204,69 @@
             font-size: 0.9em;
             margin-left: 10px;
         }
+
+        .customer-selector {
+            margin-bottom: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .customer-selector label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .customer-selector select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            background: white;
+        }
+
+        .wallet-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .wallet-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            color: white;
+        }
+
+        .wallet-card.mxn {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .wallet-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .wallet-value {
+            font-size: 2.8em;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .wallet-subtitle {
+            font-size: 0.85em;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
@@ -212,15 +275,29 @@
 
         <div class="customer-info">
             <h3><span class="status-indicator online"></span>Relier System Status: <span id="systemStatus">Loading...</span></h3>
-            <p>Customer: <strong id="customerName">Loading...</strong></p>
+        </div>
+
+        <div class="customer-selector">
+            <label for="customerSelect">Select Customer:</label>
+            <select id="customerSelect" onchange="switchCustomer()">
+                <option value="">Loading customers...</option>
+            </select>
+        </div>
+
+        <div class="wallet-grid">
+            <div class="wallet-card">
+                <div class="wallet-label">💵 USD Wallet</div>
+                <div class="wallet-value">$<span id="balanceUSD">0.00</span></div>
+                <div class="wallet-subtitle">Available Balance</div>
+            </div>
+            <div class="wallet-card mxn">
+                <div class="wallet-label">💰 MXN Consumed</div>
+                <div class="wallet-value"><span id="consumedMXN">0.00</span> MXN</div>
+                <div class="wallet-subtitle">≈ $<span id="consumedUSD">0.00</span> USD</div>
+            </div>
         </div>
 
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Current Balance</div>
-                <div class="stat-value green">$<span id="currentBalance">0.00</span></div>
-            </div>
-
             <div class="stat-card">
                 <div class="stat-label">Total Spent Today</div>
                 <div class="stat-value orange">$<span id="todaySpent">0.00</span></div>
@@ -235,6 +312,11 @@
                 <div class="stat-label">Success Rate</div>
                 <div class="stat-value green"><span id="successRate">0</span>%</div>
             </div>
+
+            <div class="stat-card">
+                <div class="stat-label">Credit Limit</div>
+                <div class="stat-value">$<span id="creditLimit">0.00</span></div>
+            </div>
         </div>
 
         <div class="section">
@@ -247,32 +329,71 @@
     </div>
 
     <script>
-        const API_KEY = 'enviadespensa_prod_2025';
-        const CUSTOMER_ID = 'ENVIADESPENSA_001';
         const BASE_URL = window.location.origin;
+        const ADMIN_KEY = 'relier_admin_2025';
+        let currentCustomer = null;
+        let allCustomers = [];
+
+        async function loadCustomers() {
+            try {
+                const response = await fetch(`${BASE_URL}/api/admin/customers`, {
+                    headers: {
+                        'x-admin-key': ADMIN_KEY
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    allCustomers = data.customers || [];
+
+                    const select = document.getElementById('customerSelect');
+                    select.innerHTML = allCustomers.map(c =>
+                        `<option value="${c.customer_id}">${c.company_name} (${c.customer_id})</option>`
+                    ).join('');
+
+                    if (allCustomers.length > 0) {
+                        currentCustomer = allCustomers[0];
+                        loadDashboard();
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading customers:', error);
+            }
+        }
+
+        function switchCustomer() {
+            const select = document.getElementById('customerSelect');
+            const customerId = select.value;
+            currentCustomer = allCustomers.find(c => c.customer_id === customerId);
+            if (currentCustomer) {
+                loadDashboard();
+            }
+        }
 
         async function loadDashboard() {
+            if (!currentCustomer) return;
+
             try {
                 // Load balance
                 const balanceResponse = await fetch(`${BASE_URL}/api/balance`, {
                     headers: {
-                        'x-api-key': API_KEY,
-                        'x-customer-id': CUSTOMER_ID
+                        'x-api-key': currentCustomer.api_key,
+                        'x-customer-id': currentCustomer.customer_id
                     }
                 });
 
                 if (balanceResponse.ok) {
                     const balanceData = await balanceResponse.json();
-                    document.getElementById('currentBalance').textContent = balanceData.current_balance.toFixed(2);
-                    document.getElementById('customerName').textContent = balanceData.company_name;
+                    document.getElementById('balanceUSD').textContent = balanceData.current_balance.toFixed(2);
+                    document.getElementById('creditLimit').textContent = balanceData.credit_limit.toFixed(2);
                     document.getElementById('systemStatus').textContent = balanceData.mode || 'PRODUCTION';
                 }
 
                 // Load transactions
                 const transResponse = await fetch(`${BASE_URL}/api/admin/transactions`, {
                     headers: {
-                        'x-api-key': API_KEY,
-                        'x-customer-id': CUSTOMER_ID
+                        'x-api-key': currentCustomer.api_key,
+                        'x-customer-id': currentCustomer.customer_id
                     }
                 });
 
@@ -328,14 +449,29 @@
                     new Date(t.created_at).toDateString() === today
                 );
                 const todaySpent = todayTransactions.reduce((sum, t) =>
-                    sum + parseFloat(t.amount), 0
+                    sum + parseFloat(t.amount_usd || t.amount || 0), 0
                 );
                 document.getElementById('todaySpent').textContent = todaySpent.toFixed(2);
+
+                // Calculate total consumed MXN and USD (all successful transactions)
+                const successfulTransactions = transactions.filter(t => t.status === 'SUCCESS');
+                const totalMXN = successfulTransactions.reduce((sum, t) =>
+                    sum + parseFloat(t.amount_mxn || 0), 0
+                );
+                const totalUSD = successfulTransactions.reduce((sum, t) =>
+                    sum + parseFloat(t.amount_usd || t.amount || 0), 0
+                );
+
+                document.getElementById('consumedMXN').textContent = totalMXN.toFixed(2);
+                document.getElementById('consumedUSD').textContent = totalUSD.toFixed(2);
+            } else {
+                document.getElementById('consumedMXN').textContent = '0.00';
+                document.getElementById('consumedUSD').textContent = '0.00';
             }
         }
 
-        // Load on page load
-        loadDashboard();
+        // Load customers on page load
+        loadCustomers();
 
         // Auto-refresh every 10 seconds
         setInterval(loadDashboard, 10000);
