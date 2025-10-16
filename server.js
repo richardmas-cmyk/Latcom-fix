@@ -2348,6 +2348,73 @@ app.post('/api/admin/setup-viaone', async (req, res) => {
             'STORE_004': 'store4pass'
         };
 
+        // Create Via.One tables first
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS owner_settings (
+                id SERIAL PRIMARY KEY,
+                owner_id VARCHAR(50) UNIQUE NOT NULL,
+                owner_name VARCHAR(255),
+                email VARCHAR(255),
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS stores (
+                id SERIAL PRIMARY KEY,
+                store_id VARCHAR(50) UNIQUE NOT NULL,
+                store_name VARCHAR(255) NOT NULL,
+                username VARCHAR(100) UNIQUE NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                owner_id VARCHAR(50),
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT NOW(),
+                last_login TIMESTAMP
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS store_pricing (
+                id SERIAL PRIMARY KEY,
+                store_id VARCHAR(50),
+                product_type VARCHAR(50) NOT NULL,
+                product_name VARCHAR(255),
+                cost_per_transaction DECIMAL(10,2) DEFAULT 0,
+                retail_fee DECIMAL(10,2) DEFAULT 0,
+                commission_percentage DECIMAL(5,2) DEFAULT 0,
+                is_active BOOLEAN DEFAULT true,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS store_transactions (
+                id SERIAL PRIMARY KEY,
+                transaction_id VARCHAR(50) UNIQUE NOT NULL,
+                store_id VARCHAR(50) NOT NULL,
+                product_type VARCHAR(50) NOT NULL,
+                phone VARCHAR(20),
+                account_no VARCHAR(50),
+                account_name VARCHAR(255),
+                amount DECIMAL(10,2) NOT NULL,
+                retail_fee DECIMAL(10,2) DEFAULT 0,
+                cost DECIMAL(10,2) DEFAULT 0,
+                profit DECIMAL(10,2) DEFAULT 0,
+                status VARCHAR(20) DEFAULT 'PENDING',
+                provider VARCHAR(20),
+                provider_transaction_id VARCHAR(100),
+                provider_response TEXT,
+                barcode_url TEXT,
+                payment_url TEXT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                processed_at TIMESTAMP
+            )
+        `);
+
+        console.log('✅ Via.One tables created');
+
         // Create owner account
         await pool.query(`
             INSERT INTO owner_settings (owner_id, owner_name, email, is_active)
