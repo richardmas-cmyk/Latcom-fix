@@ -1,2 +1,10 @@
 .env
 .env
+node_modules
+reconciliation_reports/
+docs/reconciliation_reports/
+docs/analisis_2025/
+docs/analisis_2025.zip
+*.xlsx
+*.csv
+*.zip
